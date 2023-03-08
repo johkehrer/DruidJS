@@ -1,4 +1,4 @@
-import { Matrix } from "../matrix/index.js";
+import { distance_matrix, Matrix } from "../matrix/index.js";
 import { euclidean_squared } from "../metrics/index.js";
 import { DR } from "./DR.js";
 
@@ -41,21 +41,7 @@ export class TSNE extends DR {
         const D = this._D;
         const {metric} = this._parameters;
         const X = this.X;
-        let Delta;
-        if (metric =="precomputed") {
-            Delta = druid.Matrix.from(X);
-        } else {
-            Delta = new Matrix(N, N);
-            for (let i = 0; i < N; ++i) {
-                const X_i = X.row(i);
-                for (let j = i + 1; j < N; ++j) {
-                    const distance = metric(X_i, X.row(j));
-                    Delta.set_entry(i, j, distance);
-                    Delta.set_entry(j, i, distance);
-                }
-            }
-        }
-
+        const Delta = metric === "precomputed" ? X : distance_matrix(X, metric);
         const P = new Matrix(N, N, 0);
 
         this._ystep = new Matrix(N, D, 0);
@@ -80,13 +66,13 @@ export class TSNE extends DR {
                 let dp_sum = 0;
                 for (let j = 0; j < N; ++j) {
                     const dist = dist_i[j];
-                    const pj = (i !== j) ? Math.exp(-dist * beta) : 0;
-                    dp_sum += dist * pj;
+                    const pj = (i !== j) ? Math.exp(-dist * beta) : 1e-9;
+                    dp_sum += beta * dist * pj;
                     prow[j] = pj;
                     psum += pj;
                 }
                 // compute entropy
-                const H = psum > 0 ? Math.log(psum) + beta * dp_sum / psum : 0;
+                const H = psum > 0 ? Math.log(psum) + dp_sum / psum : 0;
                 if (H > Htarget) {
                     betamin = beta;
                     beta = betamax === Infinity ? beta * 2 : (beta + betamax) / 2;
@@ -158,6 +144,7 @@ export class TSNE extends DR {
 
         //calc cost gradient;
         const pmul = iter < 100 ? 4 : 1;
+        const momval = iter < 250 ? 0.5 : 0.8;
 
         // compute Q dist (unnormalized)
         const Qu = new Matrix(N, N, "zeros");
@@ -197,18 +184,16 @@ export class TSNE extends DR {
         }
 
         // perform gradient step
-        let ymean = new Float64Array(dim);
+        const ymean = new Float64Array(dim);
         for (let i = 0; i < N; ++i) {
             for (let d = 0; d < dim; ++d) {
                 const gid = grad.entry(i, d);
                 const sid = ystep.entry(i, d);
                 const gainid = gains.entry(i, d);
 
-                let newgain = Math.sign(gid) === Math.sign(sid) ? gainid * 0.8 : gainid + 0.2;
-                if (newgain < 0.01) newgain = 0.01;
+                const newgain = Math.max(gid * sid < 0.0 ? gainid + 0.2 : gainid * 0.8, 0.01);
                 gains.set_entry(i, d, newgain);
 
-                const momval = iter < 250 ? 0.5 : 0.8;
                 const newsid = momval * sid - epsilon * newgain * gid;
                 ystep.set_entry(i, d, newsid);
 
