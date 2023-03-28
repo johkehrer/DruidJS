@@ -3,6 +3,7 @@
  */
 export { default as euclidean } from "./euclidean.js";
 export { default as euclidean_squared } from "./euclidean_squared.js";
+export { default as euclidean_squared_sum } from "./euclidean_squared_sum.js";
 export { default as cosine } from './cosine.js';
 export { default as manhattan } from './manhattan.js';
 export { default as chebyshev } from './chebyshev.js';

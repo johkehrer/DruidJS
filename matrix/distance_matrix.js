@@ -14,10 +14,9 @@ export default function (A, metric = euclidean) {
     const D = new Matrix(n, n);
     for (let i = 0; i < n; ++i) {
         const A_i = A.row(i);
+        const D_i = D.row(i);
         for (let j = i + 1; j < n; ++j) {
-            const dist = metric(A_i, A.row(j));
-            D.set_entry(i, j, dist);
-            D.set_entry(j, i, dist);
+            D.set_entry(j, i, D_i[j] = metric(A_i, A.row(j)));
         }
     }
     return D;

@@ -1,5 +1,26 @@
 import { euclidean } from "../metrics/index.js";
 import { Heap } from "../datastructure/index.js";
+import { quickselect } from "../util/index.js";
+
+const LEAF_SIZE = 32;
+
+class BTNode {
+    constructor(pivot, radius = null, child1 = null, child2 = null) {
+        this.pivot = pivot;
+        this.child1 = child1;
+        this.child2 = child2;
+        this.radius = radius;
+    }
+}
+
+class BTLeaf {
+    constructor(pivot, radius, points) {
+        this.pivot = pivot;
+        this.radius = radius;
+        this.points = points;
+    }
+}
+
 /**
  * @class
  * @alias BallTree
@@ -16,104 +37,84 @@ export class BallTree {
      * @see {@link https://github.com/invisal/noobjs/blob/master/src/tree/BallTree.js}
      * @returns {BallTree}
      */
-    constructor(elements = null, metric = euclidean) {
-        this._Node = class {
-            constructor(pivot, child1=null, child2=null, radius=null) {
-                this.pivot = pivot;
-                this.child1 = child1;
-                this.child2 = child2;
-                this.radius = radius;
-            }
-        }
-        this._Leaf = class {
-            constructor(points) {
-                this.points = points;
-            }
-        }
+    constructor(elements = null, metric = euclidean, add_distances = null) {
+        this._addDist = add_distances || ((a, b) => a + b);
         this._metric = metric;
-        if (elements) {
-            this.add(elements);
-        }
+        if (elements) this.add(elements);
         return this;
     }
 
     /**
-     * 
      * @param {Array<*>} elements - new elements.
      * @returns {BallTree}
      */
     add(elements) {
-        elements = elements.map((element, index) => {
-            return {index: index, element: element}
-        })
-        this._root = this._construct(elements);
+        const arr = elements.map((e, i) => ({ element: e, index: i }));
+        this._root = this._construct(arr, 0, elements.length);
         return this;
     }
 
     /**
      * @private
-     * @param {Array<*>} elements 
-     * @returns {Node} root of balltree.
+     * @param {Array<*>} arr
+     * @returns {BTNode} root of balltree.
      */
-    _construct(elements) {
-        if (elements.length === 1) {
-            return new this._Leaf(elements);
-        } else {
-            let c = this._greatest_spread(elements);
-            let sorted_elements = elements.sort((a, b) => a.element[c] - b.element[c]);
-            let n = sorted_elements.length;
-            let p_index = Math.floor(n / 2);
-            let p = elements[p_index];
-            let L = sorted_elements.slice(0, p_index);
-            let R = sorted_elements.slice(p_index, n);
-            let radius = Math.max(...elements.map(d => this._metric(p.element, d.element)));
-            let B
-            if (L.length > 0 && R.length > 0) {         
-                B = new this._Node(p, this._construct(L), this._construct(R), radius);
-            } else {
-                B = new this._Leaf(elements);
-            }
-            return B;
+    _construct(arr, left, right) {
+        // partially sort array according to dimension of greatest spread
+        const p_idx = (left + right) >> 1;
+        const c = this._greatest_spread(arr, left, right);
+        quickselect(arr, (a, b) => a.element[c] - b.element[c], p_idx, left, right - 1);
+
+        // compute radius of ball
+        let radius = 0.0;
+        const metric = this._metric;
+        const pivot = arr[p_idx].element;
+        for (let dist, i = left; i < right; ++i) {
+            dist = metric(pivot, arr[i].element);
+            if (dist > radius) radius = dist;
         }
+
+        if (right - left > LEAF_SIZE) {
+            const L = this._construct(arr, left, p_idx);
+            const R = this._construct(arr, p_idx, right);
+            return new BTNode(pivot, radius, L, R);
+        }
+        return new BTLeaf(pivot, radius, arr.slice(left, right));
     }
 
     /**
      * @private
-     * @param {Node} B 
+     * @param {BTNode} arr
      * @returns {Number}
      */
-    _greatest_spread(B) {
-        let d = B[0].element.length;
-        let start = new Array(d);
-
-        for (let i = 0; i < d; ++i) {
-            start[i] = [Infinity, -Infinity];
-        }
-
-        let spread = B.reduce((acc, current) => {
-            for (let i = 0; i < d; ++i) {
-                acc[i][0] = Math.min(acc[i][0], current.element[i]);
-                acc[i][1] = Math.max(acc[i][1], current.element[i]);
+    _greatest_spread(arr, left, right) {
+        let maxDim = -1;
+        let maxSpread = 0.0;
+        const d = arr[left].element.length;
+        for (let val, min, max, i = 0; i < d; ++i) {
+            min = max = arr[left].element[i];
+            for (let j = left + 1; j < right; ++j) {
+                val = arr[j].element[i];
+                if (val < min) min = val;
+                if (val > max) max = val;
             }
-            return acc;
-        }, start);
-        spread = spread.map(d => d[1] - d[0]);
-        
-        let c = 0;
-        for (let i = 0; i < d; ++i) {
-            c = spread[i] > spread[c] ? i : c;
+            const spread = max - min;
+            if (spread > maxSpread) {
+                maxSpread = spread;
+                maxDim = i;
+            }
         }
-        return c;
+        return maxDim;
     }
 
     /**
-     * 
      * @param {*} t - query element.
      * @param {Number} [k = 5] - number of nearest neighbors to return.
      * @returns {Heap} - Heap consists of the {@link k} nearest neighbors.
      */
     search(t, k = 5) {
-        return this._search(t, k, new Heap(null, d => this._metric(d.element, t), "max"), this._root);
+        const heap = new Heap(null, d => this._metric(d.element, t), "max");
+        return this._search(t, k, heap, this._root);
     }
 
     /**
@@ -121,27 +122,26 @@ export class BallTree {
      * @param {*} t - query element.
      * @param {Number} [k = 5] - number of nearest neighbors to return.
      * @param {Heap} Q - Heap consists of the currently found {@link k} nearest neighbors.
-     * @param {Node|Leaf} B 
+     * @param {BTNode|BTLeaf} B
      */
     _search(t, k, Q, B) {
-        // B is Node
-        if (Q.length >= k && B.pivot && B.radius && this._metric(t, B.pivot.element) - B.radius >= Q.first.value) {
+        const metric = this._metric;
+        if (Q.length >= k && metric(t, B.pivot) >= this._addDist(Q.first.value, B.radius)) {
             return Q;
-        } 
-        if (B.child1) this._search(t, k, Q, B.child1);
-        if (B.child2) this._search(t, k, Q, B.child2);
-        
-        // B is leaf
+        }
         if (B.points) {
-            for (let i = 0, n = B.points.length; i < n; ++i) {
-                let p = B.points[i];
-                if (k > Q.length) {
-                    Q.push(p);
-                } else {
-                    Q.push(p);
-                    Q.pop();
-                }
+            // B is leaf
+            for (const p of B.points) {
+                if (Q.length < k) Q.push(p);
+                else Q.pushPop(p);
             }
+        } else if (metric(t, B.child1.pivot) < metric(t, B.child2.pivot)) {
+            // search the child node that is closest to t first
+            this._search(t, k, Q, B.child1);
+            this._search(t, k, Q, B.child2);
+        } else {
+            this._search(t, k, Q, B.child2);
+            this._search(t, k, Q, B.child1);
         }
         return Q;
     }

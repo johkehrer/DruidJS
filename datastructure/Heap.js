@@ -69,16 +69,14 @@ export class Heap {
      * @private
      */
     _heapify_up() {
+        const comparator = this._comparator;
         const container = this._container;
         let index = container.length - 1;
-        while (index > 0) {
-            let parentIndex = Math.floor((index - 1) / 2);
-            if (!this._comparator(container[index].value, container[parentIndex].value)) {
-                break;
-            } else {
-            this._swap(parentIndex, index)
-            index = parentIndex;
-            }
+        let parent = (index - 1) >> 1;
+        while (index > 0 && comparator(container[index].value, container[parent].value)) {
+            this._swap(parent, index)
+            index = parent;
+            parent = (index - 1) >> 1;
         }
     }
 
@@ -87,36 +85,51 @@ export class Heap {
      * @param {} element
      * @returns {Heap}
      */
-    push(element) {
-        const value = this._accessor(element);
-        //const node = new Node(element, value);
-        const node = {"element": element, "value": value};
+    push(element, value = null) {
+        const node = { element, value: value ?? this._accessor(element)};
         this._container.push(node);
         this._heapify_up();
         return this;
     }
 
     /**
-     * @private
-     * @param {Number} [start_index = 0] 
+     * Pushes a new element to the heap. At the same time it removes and returns the
+     * top entry of the heap. This is faster than calling push() and pop() separately.
+     * @param {} element
+     * @returns {Object} Object consists of the element and its value (computed by {@link accessor}).
      */
-    _heapify_down(start_index=0) {
+    pushPop(element, value = null) {
+        value = value ?? this._accessor(element);
+        if (this._comparator(this._container[0].value, value)) {
+            const item = this._container[0];
+            this._container[0] = { element, value };
+            this._heapify_down();
+            return item;
+        }
+        return { element, value };
+    }
+
+    /**
+     * @private
+     * @param {Number} [index = 0]
+     */
+    _heapify_down(index = 0) {
         const container = this._container;
         const comparator = this._comparator;
         const length = container.length;
-        let left = 2 * start_index + 1;
-        let right = 2 * start_index + 2;
-        let index = start_index;
-        if (index > length) throw "index higher than length"
-        if (left < length && comparator(container[left].value, container[index].value)) {
-            index = left;
-        }
-        if (right < length && comparator(container[right].value, container[index].value)) {
-            index = right;
-        }
-        if (index !== start_index) {
-            this._swap(start_index, index);
-            this._heapify_down(index);
+        let swapIdx = index;
+        while (true) {
+            const left = (index << 1) + 1;
+            const right = left + 1;
+            if (left < length && comparator(container[left].value, container[swapIdx].value)) {
+                swapIdx = left;
+            }
+            if (right < length && comparator(container[right].value, container[swapIdx].value)) {
+                swapIdx = right;
+            }
+            if (swapIdx === index) break;
+            this._swap(index, swapIdx);
+            index = swapIdx;
         }
     }
 
