@@ -26,7 +26,6 @@ export class TSNE extends DR {
         super(X, { perplexity: 50, epsilon: 10, d: 2, metric: euclidean_squared, seed: 1212 }, parameters);
         [this._N, this._D] = this.X.shape;
         this._iter = 0;
-        this.Y = new Matrix(this._N, this.parameter("d"), () => this._randomizer.gauss_random() * 1e-4);
         return this;
     }
 
@@ -36,16 +35,17 @@ export class TSNE extends DR {
      */
     init() {
         // init
-        const Htarget = Math.log(this.parameter("perplexity"));
+        const { d: dim, metric, perplexity } = this._parameters;
+        const randomizer = this._randomizer;
+        const Htarget = Math.log(perplexity);
         const N = this._N;
-        const D = this._D;
-        const {metric} = this._parameters;
         const X = this.X;
         const Delta = metric === "precomputed" ? X : distance_matrix(X, metric);
         const P = new Matrix(N, N, 0);
 
-        this._ystep = new Matrix(N, D, 0);
-        this._gains = new Matrix(N, D, 1);
+        this.Y = new Matrix(N, dim, () => randomizer.gauss_random() * 1e-4);
+        this._ystep = new Matrix(N, dim, 0);
+        this._gains = new Matrix(N, dim, 1);
 
         // search for fitting sigma
         const tol = 1e-4;
@@ -89,12 +89,12 @@ export class TSNE extends DR {
         }
 
         // compute probabilities
-        const N2 = N * 2;
+        const N2 = 1.0 / (N * 2);
         for (let i = 0; i < N; ++i) {
-            for (let j = i; j < N; ++j) {
-                const p = Math.max((P.entry(i, j) + P.entry(j, i)) / N2, 1e-100);
-                P.set_entry(i, j, p);
-                P.set_entry(j, i, p);
+            const P_i = P.row(i);
+            for (let j = i + 1; j < N; ++j) {
+                const p = (P_i[j] + P.entry(j, i)) * N2;
+                P.set_entry(j, i, P_i[j] = p);
             }
         }
         this._P = P;
@@ -140,45 +140,40 @@ export class TSNE extends DR {
         const gains = this._gains;
         const N = this._N;
         const { d: dim, epsilon} = this._parameters;
-        let Y = this.Y;
+        const Y = this.Y;
 
         //calc cost gradient;
         const pmul = iter < 100 ? 4 : 1;
         const momval = iter < 250 ? 0.5 : 0.8;
 
         // compute Q dist (unnormalized)
-        const Qu = new Matrix(N, N, "zeros");
         let qsum = 0;
+        const Q = new Matrix(N, N, 0);
         for (let i = 0; i < N; ++i) {
+            const Q_i = Q.row(i);
+            const Y_i = Y.row(i);
             for (let j = i + 1; j < N; ++j) {
                 let dsum = 0;
                 for (let d = 0; d < dim; ++d) {
-                    const dhere = Y.entry(i, d) - Y.entry(j, d);
+                    const dhere = Y_i[d] - Y.entry(j, d);
                     dsum += dhere * dhere;
                 }
                 const qu = 1 / (1 + dsum);
-                Qu.set_entry(i, j, qu);
-                Qu.set_entry(j, i, qu);
+                Q.set_entry(j, i, Q_i[j] = qu);
                 qsum += 2 * qu;
             }
         }
 
-        // normalize Q dist
-        const Q = new Matrix(N, N, 0);
+        const grad = new Matrix(N, dim, 0);
         for (let i = 0; i < N; ++i) {
-            for (let j = i + 1; j < N; ++j) {
-                const val = Math.max(Qu.entry(i, j) / qsum, 1e-100);
-                Q.set_entry(i, j, val);
-                Q.set_entry(j, i, val);
-            }
-        }
-
-        const grad = new Matrix(N, dim, "zeros");
-        for (let i = 0; i < N; ++i) {
+            const P_i = P.row(i);
+            const Q_i = Q.row(i);
+            const Y_i = Y.row(i);
+            const g_i = grad.row(i);
             for (let j = 0; j < N; ++j) {
-                const premult = 4 * (pmul * P.entry(i, j) - Q.entry(i, j)) * Qu.entry(i, j);
+                const premult = 4 * (pmul * P_i[j] - (Q_i[j] / qsum)) * Q_i[j];
                 for (let d = 0; d < dim; ++d) {
-                    grad.add_entry(i, d, premult * (Y.entry(i, d) - Y.entry(j, d)));
+                    g_i[d] += premult * (Y_i[d] - Y.entry(j, d));
                 }
             }
         }
