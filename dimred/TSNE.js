@@ -58,12 +58,11 @@ export class TSNE extends DR {
             let beta = 1;
             let cnt = maxtries;
             let done = false;
-            let psum;
+            let psum, dp_sum;
 
             while (!done && cnt--) {
                 // compute entropy and kernel row with beta precision
-                psum = 0;
-                let dp_sum = 0;
+                psum = dp_sum = 0;
                 for (let j = 0; j < N; ++j) {
                     const dist = dist_i[j];
                     const pj = (i !== j) ? Math.exp(-dist * beta) : 1e-9;
@@ -72,29 +71,28 @@ export class TSNE extends DR {
                     psum += pj;
                 }
                 // compute entropy
-                const H = psum > 0 ? Math.log(psum) + dp_sum / psum : 0;
+                const H = Math.log(psum) + (dp_sum / psum);
                 if (H > Htarget) {
                     betamin = beta;
-                    beta = betamax === Infinity ? beta * 2 : (beta + betamax) / 2;
+                    beta = betamax === Infinity ? 2 * beta : 0.5 * (beta + betamax);
                 } else {
                     betamax = beta;
-                    beta = betamin === -Infinity ? beta / 2 : (beta + betamin) / 2;
+                    beta = betamin === -Infinity ? 0.5 * beta : 0.5 * (beta + betamin);
                 }
                 done = Math.abs(H - Htarget) < tol;
             }
-            // normalize p
+            // normalize row
+            const N2 = 1.0 / (2 * N * psum);
             for (let j = 0; j < N; ++j) {
-                prow[j] /= psum;
+                prow[j] *= N2;
             }
         }
 
         // compute probabilities
-        const N2 = 1.0 / (N * 2);
         for (let i = 0; i < N; ++i) {
             const P_i = P.row(i);
-            for (let j = i + 1; j < N; ++j) {
-                const p = (P_i[j] + P.entry(j, i)) * N2;
-                P.set_entry(j, i, P_i[j] = p);
+            for (let j = i; j < N; ++j) {
+                P.set_entry(j, i, P_i[j] += P.entry(j, i));
             }
         }
         this._P = P;
@@ -134,12 +132,12 @@ export class TSNE extends DR {
      * @returns {Matrix}
      */
     next() {
+        const { d: dim, epsilon} = this._parameters;
+        const ystep = this._ystep.values;
+        const gains = this._gains.values;
         const iter = ++this._iter;
         const P = this._P;
-        const ystep = this._ystep;
-        const gains = this._gains;
         const N = this._N;
-        const { d: dim, epsilon} = this._parameters;
         const Y = this.Y;
 
         //calc cost gradient;
@@ -147,14 +145,13 @@ export class TSNE extends DR {
         const momval = iter < 250 ? 0.5 : 0.8;
 
         // compute Q dist (unnormalized)
-        let qsum = 0;
+        let d, dsum, qsum = 0;
         const Q = new Matrix(N, N, 0);
         for (let i = 0; i < N; ++i) {
             const Q_i = Q.row(i);
             const Y_i = Y.row(i);
             for (let j = i + 1; j < N; ++j) {
-                let dsum = 0;
-                for (let d = 0; d < dim; ++d) {
+                for (dsum = 0, d = 0; d < dim; ++d) {
                     const dhere = Y_i[d] - Y.entry(j, d);
                     dsum += dhere * dhere;
                 }
@@ -164,6 +161,7 @@ export class TSNE extends DR {
             }
         }
 
+        const Y_val = Y.values;
         const grad = new Matrix(N, dim, 0);
         for (let i = 0; i < N; ++i) {
             const P_i = P.row(i);
@@ -171,36 +169,38 @@ export class TSNE extends DR {
             const Y_i = Y.row(i);
             const g_i = grad.row(i);
             for (let j = 0; j < N; ++j) {
-                const premult = 4 * (pmul * P_i[j] - (Q_i[j] / qsum)) * Q_i[j];
-                for (let d = 0; d < dim; ++d) {
-                    g_i[d] += premult * (Y_i[d] - Y.entry(j, d));
+                if (i !== j) {
+                    const qu = Q_i[j];
+                    const premult = 4 * (pmul * P_i[j] - (qu / qsum)) * qu;
+                    for (d = 0; d < dim; ++d) {
+                        g_i[d] += premult * (Y_i[d] - Y.entry(j, d));
+                    }
                 }
             }
         }
 
         // perform gradient step
+        const g_val = grad.values;
         const ymean = new Float64Array(dim);
-        for (let i = 0; i < N; ++i) {
-            for (let d = 0; d < dim; ++d) {
-                const gid = grad.entry(i, d);
-                const sid = ystep.entry(i, d);
-                const gainid = gains.entry(i, d);
+        for (let i = 0, cnt = N; cnt--;) {
+            for (d = 0; d < dim; ++d, ++i) {
+                const gid = g_val[i];
+                const sid = ystep[i];
 
-                const newgain = Math.max(gid * sid < 0.0 ? gainid + 0.2 : gainid * 0.8, 0.01);
-                gains.set_entry(i, d, newgain);
+                const newgain = Math.max(gid * sid < 0.0 ? gains[i] + 0.2 : gains[i] * 0.8, 0.01);
+                gains[i] = newgain;
 
                 const newsid = momval * sid - epsilon * newgain * gid;
-                ystep.set_entry(i, d, newsid);
+                ystep[i] = newsid;
 
-                Y.add_entry(i, d, newsid);
-                ymean[d] += Y.entry(i, d);
+                ymean[d] += (Y_val[i] += newsid);
             }
         }
 
-        for (let i = 0; i < N; ++i) {
-            for (let d = 0; d < dim; ++d) {
-                Y.sub_entry(i, d, ymean[d] / N);
-            }
+        // center Y around mean
+        for (d = 0; d < dim; ++d) ymean[d] /= N;
+        for (let i = 0, cnt = N; cnt--;) {
+            for (d = 0; d < dim;) Y_val[i++] -= ymean[d++];
         }
 
         return this.Y;
