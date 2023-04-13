@@ -7,11 +7,11 @@
  * @returns {Number} the chebyshev distance between {@link a} and {@link b}.
  */
 export default function (a, b) {
-    if (a.length != b.length) return undefined;
+    let max = -1;
     const n = a.length;
-    let res = [];
     for (let i = 0; i < n; ++i) {
-        res.push(Math.abs(a[i] - b[i]));
+        const a_b = Math.abs(a[i] - b[i]);
+        if (a_b > max) max = a_b;
     }
-    return Math.max(...res);
+    return max;
 }

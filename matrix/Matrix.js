@@ -210,6 +210,25 @@ export class Matrix {
     }
 
     /**
+     * Returns the minimum and maximum value of the {@link col}<sup>th</sup> column from the Matrix.
+     * @param {Number} col
+     * @returns {Array}
+     */
+    extent(col) {
+        const data = this.values;
+        const cols = this._cols;
+        const end = this._rows * cols;
+        let min = Number.POSITIVE_INFINITY;
+        let max = Number.NEGATIVE_INFINITY;
+        for (let val, i = col; i < end; i += cols) {
+            val = data[i];
+            if (val < min) min = val;
+            if (val > max) max = val;
+        }
+        return [min, max];
+    }
+
+    /**
      * Returns the {@link col}<sup>th</sup> entry from the {@link row}<sup>th</sup> row of the Matrix.
      * @param {int} row
      * @param {int} col
