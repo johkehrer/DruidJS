@@ -17,8 +17,9 @@ export default function (A, k, metric = euclidean) {
     const D = metric == "precomputed" ? A : distance_matrix(A, metric);
     for (let row = 0; row < rows; ++row) {
         const arr = Array.from(D.row(row), (d, col) => ({ i: row, j: col, distance: d }));
-        quickselect(arr, (a, b) => a.distance - b.distance, k - 1);
-        nN[row] = arr.slice(0, k);
+        quickselect(arr, (a, b) => a.distance - b.distance, k);
+        quickselect(arr, (a, b) => a.distance - b.distance, 0, 0, k);
+        nN[row] = arr.slice(1, k + 1);
     }
     return nN;
 }
