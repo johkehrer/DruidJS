@@ -211,7 +211,7 @@ export class Matrix {
         const data = this._data;
         const cols = this._cols;
         const end = this._rows * cols;
-        let min = data[i], max = min;
+        let min = data[col], max = min;
         for (let val, i = col + cols; i < end; i += cols) {
             val = data[i];
             if (val < min) min = val;
