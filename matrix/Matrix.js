@@ -30,48 +30,38 @@ export class Matrix {
         this._cols = cols;
         this._data = null;
         if (rows && cols) {
-            if (!value) {
-                this._data = new Float64Array(rows * cols);
-                return this;
-            }
+            const data = this._data = new Float64Array(rows * cols);
+            if (!value) return this;
             if (typeof value === "function") {
-                this._data = new Float64Array(rows * cols);
-                for (let row = 0; row < rows; ++row) {
+                for (let i = 0, row = 0; row < rows; ++row) {
                     for (let col = 0; col < cols; ++col) {
-                        this._data[row * cols + col] = value(row, col);
+                        data[i++] = value(row, col);
                     }
                 }
                 return this;
             }
             if (typeof value === "string") {
                 if (value === "zeros") {
-                    return new Matrix(rows, cols, 0);
+                    return this;
                 }
                 if (value === "identity" || value === "I") {
-                    this._data = new Float64Array(rows * cols);
                     for (let row = 0; row < rows; ++row) {
-                        this._data[row * cols + row] = 1;
+                        data[row * cols + row] = 1;
                     }
                     return this;
                 }
                 if (value === "center" && rows == cols) {
-                    this._data = new Float64Array(rows * cols);
                     value = (i, j) => (i === j ? 1 : 0) - 1 / rows;
-                    for (let row = 0; row < rows; ++row) {
+                    for (let i = 0, row = 0; row < rows; ++row) {
                         for (let col = 0; col < cols; ++col) {
-                            this._data[row * cols + col] = value(row, col);
+                            data[i++] = value(row, col);
                         }
                     }
                     return this;
                 }
             }
             if (typeof value === "number") {
-                this._data = new Float64Array(rows * cols);
-                for (let row = 0; row < rows; ++row) {
-                    for (let col = 0; col < cols; ++col) {
-                        this._data[row * cols + col] = value;
-                    }
-                }
+                data.fill(value);
                 return this;
             }
         }
@@ -128,9 +118,8 @@ export class Matrix {
      * @returns {Float64Array}
      */
     row(row) {
-        const data = this.values;
         const cols = this._cols;
-        return data.subarray(row * cols, (row + 1) * cols);
+        return this._data.subarray(row * cols, (row + 1) * cols);
     }
 
     /**
@@ -140,7 +129,7 @@ export class Matrix {
     *iterate_rows() {
         const cols = this._cols;
         const rows = this._rows;
-        const data = this.values;
+        const data = this._data;
         for (let row = 0; row < rows; ++row) {
             yield data.subarray(row * cols, (row + 1) * cols);
         }
@@ -164,15 +153,16 @@ export class Matrix {
      */
     set_row(row, values) {
         const cols = this._cols;
+        const data = this._data;
         if (Matrix.isArray(values) && values.length === cols) {
             const offset = row * cols;
             for (let col = 0; col < cols; ++col) {
-                this.values[offset + col] = values[col];
+                data[offset + col] = values[col];
             }
         } else if (values instanceof Matrix && values.shape[1] === cols && values.shape[0] === 1) {
             const offset = row * cols;
             for (let col = 0; col < cols; ++col) {
-                this.values[offset + col] = values._data[col];
+                data[offset + col] = values._data[col];
             }
         } else {
             throw new Error("Values not valid! Needs to be either an Array, a Float64Array, or a fitting Matrix!")
@@ -188,7 +178,7 @@ export class Matrix {
      */
     swap_rows(row1, row2) {
         const cols = this._cols;
-        const data = this.values;
+        const data = this._data;
         for (let i = row1 * cols, j = row2 * cols, col = 0; col < cols; ++col, ++i, ++j) {
             const t = data[i];
             data[i] = data[j];
@@ -202,11 +192,14 @@ export class Matrix {
      * @returns {Array}
      */
     col(col) {
-        const result_col = new Float64Array(this._rows);
-        for (let row = 0; row < this._rows; ++row) {
-            result_col[row] = this.values[row * this._cols + col];
+        const cols = this._cols;
+        const rows = this._rows;
+        const data = this._data;
+        const result = new Float64Array(rows);
+        for (let i = col, row = 0; row < rows; ++row, i += cols) {
+            result[row] = data[i];
         }
-        return result_col;
+        return result;
     }
 
     /**
@@ -215,12 +208,11 @@ export class Matrix {
      * @returns {Array}
      */
     extent(col) {
-        const data = this.values;
+        const data = this._data;
         const cols = this._cols;
         const end = this._rows * cols;
-        let min = Number.POSITIVE_INFINITY;
-        let max = Number.NEGATIVE_INFINITY;
-        for (let val, i = col; i < end; i += cols) {
+        let min = data[i], max = min;
+        for (let val, i = col + cols; i < end; i += cols) {
             val = data[i];
             if (val < min) min = val;
             if (val > max) max = val;
@@ -235,7 +227,7 @@ export class Matrix {
      * @returns {float64}
      */
     entry(row, col) {
-        return this.values[row * this._cols + col];
+        return this._data[row * this._cols + col];
     }
 
     /**
@@ -246,7 +238,7 @@ export class Matrix {
      * @returns {Matrix}
      */
     set_entry(row, col, value) {
-        this.values[row * this._cols + col] = value;
+        this._data[row * this._cols + col] = value;
         return this;
     }
 
@@ -258,8 +250,8 @@ export class Matrix {
      * @returns {Matrix}
      */
     add_entry(row, col, value) {
-      this.values[row * this._cols + col] += value;
-      return this;
+        this._data[row * this._cols + col] += value;
+        return this;
     }
 
     /**
@@ -270,8 +262,8 @@ export class Matrix {
      * @returns {Matrix}
      */
     sub_entry(row, col, value) {
-      this.values[row * this._cols + col] -= value;
-      return this;
+        this._data[row * this._cols + col] -= value;
+        return this;
     }
 
     /**
@@ -633,7 +625,7 @@ export class Matrix {
      * @param {Function} v function takes 2 parameters for row and col, and returns a value witch should be applied to the colth entry of the rowth row of the matrix.
      */
     _apply_array(f, v) {
-        const data = this.values;
+        const data = this._data;
         const [rows, cols] = this.shape;
         for (let i = 0, row = 0; row < rows; ++row) {
             for (let col = 0; col < cols; ++col, ++i) {
@@ -648,7 +640,7 @@ export class Matrix {
     }
 
     _apply_colwise_array(values, f) {
-        const data = this.values;
+        const data = this._data;
         const [rows, cols] = this.shape;
         for (let i = 0, row = 0; row < rows; ++row) {
             const val = values[row];
@@ -660,7 +652,7 @@ export class Matrix {
     }
 
     _apply(value, f) {
-        const data = this.values;
+        const data = this._data;
         const [rows, cols] = this.shape;
         if (value instanceof Matrix) {
             const values = value.values;
@@ -679,7 +671,7 @@ export class Matrix {
                     throw new Error(`rows !== value_rows`);
                 }
                 for (let i = 0, row = 0; row < rows; ++row) {
-                    const v =  values[row];
+                    const v = values[row];
                     for (let col = 0; col < cols; ++col, ++i) {
                         data[i] = f(data[i], v);
                     }
@@ -724,7 +716,7 @@ export class Matrix {
         let B = new Matrix();
         B._rows = this._rows;
         B._cols = this._cols;
-        B._data = this.values.slice(0);
+        B._data = this._data.slice(0);
         return B;
     }
 
@@ -780,7 +772,7 @@ export class Matrix {
      * A.add(2); // [[3, 4], [5, 6]];
      * A.add(B); // [[2, 4], [6, 8]];
      */
-    add(value, {inline = false} = {}) {
+    add(value, { inline = false } = {}) {
         const A = inline ? this : this.clone();
         return A._apply(value, (a, b) => a + b);
     }
@@ -883,8 +875,7 @@ export class Matrix {
      * @returns {Number}
      */
     get sum() {
-        const data = this.values;
-        return neumair_sum(data);
+        return neumair_sum(this._data);
     }
 
     /**
@@ -901,7 +892,7 @@ export class Matrix {
      * @returns {Float64Array}
      */
     get meanRows() {
-        const data = this.values;
+        const data = this._data;
         const rows = this._rows;
         const cols = this._cols;
         const result = Float64Array.from({ length: rows });
@@ -919,7 +910,7 @@ export class Matrix {
      * @returns {Float64Array}
      */
     get meanCols() {
-        const data = this.values;
+        const data = this._data;
         const rows = this._rows;
         const cols = this._cols;
         const result = Float64Array.from({ length: cols });
@@ -1072,6 +1063,6 @@ export class Matrix {
     }
 
     static isArray(A) {
-      return Array.isArray(A) || A instanceof Float64Array || A instanceof Float32Array;
+        return Array.isArray(A) || A instanceof Float64Array || A instanceof Float32Array;
     }
 }
