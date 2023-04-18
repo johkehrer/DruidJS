@@ -271,7 +271,9 @@ export class Matrix {
      * @returns {Matrix}
      */
     transpose() {
-        let B = new Matrix(this._cols, this._rows, (row, col) => this.entry(col, row));
+        const cols = this._cols;
+        const data = this._data;
+        const B = new Matrix(cols, this._rows, (col, row) => data[row * cols + col]);
         return B;
     }
 
@@ -359,14 +361,12 @@ export class Matrix {
             const [rows_A, cols_A] = A.shape;
             const [rows_B, cols_B] = B.shape;
             if (cols_A !== rows_B) {
-                throw new Error(`A.dot(B): A is a ${A.shape.join(" ⨯ ")}-Matrix, B is a ${B.shape.join(" ⨯ ")}-Matrix:
-                A has ${cols_A} cols and B ${rows_B} rows.
-                Must be equal!`);
+                throw new Error(`A.dot(B): A has ${cols_A} cols and B has ${rows_B} rows. Must be equal!`);
             }
+            const B_val = B.values;
             const C = new Matrix(rows_A, cols_B, (row, col) => {
-                const A_i = A.row(row);
-                const B_val = B.values;
                 let sum = 0;
+                const A_i = A.row(row);
                 for (let i = 0, j = col; i < cols_A; ++i, j += cols_B) {
                     sum += A_i[i] * B_val[j];
                 }
@@ -374,13 +374,13 @@ export class Matrix {
             });
             return C;
         } else if (Matrix.isArray(B)) {
-            let rows = this._rows;
+            const rows = this._rows;
+            const C = new Array(rows);
             if (B.length !== rows) {
                 throw new Error(`A.dot(B): A has ${rows} cols and B has ${B.length} rows. Must be equal!`);
             }
-            let C = new Array(rows);
             for (let row = 0; row < rows; ++row) {
-                C[row] = neumair_sum(this.row(row).map((e) => e * B[row]));
+                C[row] = B[row] * neumair_sum(this.row(row));
             }
             return C;
         } else {
@@ -401,29 +401,27 @@ export class Matrix {
             const [cols_A, rows_A] = A.shape; // transpose matrix
             const [rows_B, cols_B] = B.shape;
             if (cols_A !== rows_B) {
-                throw new Error(`A.dot(B): A is a ${[rows_A, cols_A].join(" ⨯ ")}-Matrix, B is a ${B.shape.join(" ⨯ ")}-Matrix:
-                A has ${cols_A} cols and B ${rows_B} rows, which must be equal!`);
+                throw new Error(`A.transDot(B): A has ${cols_A} cols and B has ${rows_B} rows. Must be equal!`);
             }
-            // let B = new Matrix(this._cols, this._rows, (row, col) => this.entry(col, row));
-            // this.values[row * this._cols + col];
+            const A_val = A.values;
+            const B_val = B.values;
+            const A_size = rows_A * cols_A;
             const C = new Matrix(rows_A, cols_B, (row, col) => {
-                const A_val = A.values;
-                const B_val = B.values;
                 let sum = 0;
-                for (let i = 0, j = row, k = col; i < cols_A; ++i, j += rows_A, k += cols_B) {
-                    sum += A_val[j] * B_val[k];
+                for (let i = row, j = col; i < A_size; i += rows_A, j += cols_B) {
+                    sum += A_val[i] * B_val[j];
                 }
                 return sum;
             });
             return C;
         } else if (Matrix.isArray(B)) {
-            let rows = this._cols;
+            const rows = this._cols;
             if (B.length !== rows) {
-                throw new Error(`A.dot(B): A has ${rows} cols and B has ${B.length} rows. Must be equal!`);
+                throw new Error(`A.transDot(B): A has ${rows} cols and B has ${B.length} rows. Must be equal!`);
             }
-            let C = new Array(rows);
+            const C = new Array(rows);
             for (let row = 0; row < rows; ++row) {
-                C[row] = neumair_sum(this.col(row).map((e) => e * B[row]));
+                C[row] = B[row] * neumair_sum(this.col(row));
             }
             return C;
         } else {
@@ -444,8 +442,7 @@ export class Matrix {
             const [rows_A, cols_A] = A.shape;
             const [cols_B, rows_B] = B.shape;
             if (cols_A !== rows_B) {
-                throw new Error(`A.dot(B): A is a ${A.shape.join(" ⨯ ")}-Matrix, B is a ${[rows_B, cols_B].join(" ⨯ ")}-Matrix:
-                A has ${cols_A} cols and B ${rows_B} rows, which must be equal!`);
+                throw new Error(`A.dotTrans(B): A has ${cols_A} cols and B has ${rows_B} rows. Must be equal!`);
             }
             const C = new Matrix(rows_A, cols_B, (row, col) => {
                 const A_i = A.row(row);
@@ -458,13 +455,13 @@ export class Matrix {
             });
             return C;
         } else if (Matrix.isArray(B)) {
-            let rows = this._rows;
+            const rows = this._rows;
             if (B.length !== rows) {
-                throw new Error(`A.dot(B): A has ${rows} cols and B has ${B.length} rows. Must be equal!`);
+                throw new Error(`A.dotTrans(B): A has ${rows} cols and B has ${B.length} rows. Must be equal!`);
             }
-            let C = new Array(rows);
+            const C = new Array(rows);
             for (let row = 0; row < rows; ++row) {
-                C[row] = neumair_sum(this.row(row).map((e) => e * B[row]));
+                C[row] = B[row] * neumair_sum(this.row(row));
             }
             return C;
         } else {
@@ -581,9 +578,7 @@ export class Matrix {
         end_row = end_row ?? rows;
         end_col = end_col ?? cols;
         if (end_row <= start_row || end_col <= start_col) {
-            throw new Error(`
-                end_row must be greater than start_row, and
-                end_col must be greater than start_col, but
+            throw new Error(`end_row must be greater than start_row, and end_col must be greater than start_col, but
                 end_row = ${end_row}, start_row = ${start_row}, end_col = ${end_col}, and start_col = ${start_col}!`);
         }
         const X = new Matrix(end_row - start_row, end_col - start_col, "zeros");
@@ -618,30 +613,22 @@ export class Matrix {
         return R;
     }
 
-    /**
-     * Applies a function to each entry of the matrix.
-     * @private
-     * @param {Function} f function takes 2 parameters, the value of the actual entry and a value given by the function {@link v}. The result of {@link f} gets writen to the Matrix.
-     * @param {Function} v function takes 2 parameters for row and col, and returns a value witch should be applied to the colth entry of the rowth row of the matrix.
-     */
-    _apply_array(f, v) {
+    _apply_rowwise(values, f) {
         const data = this._data;
         const [rows, cols] = this.shape;
+        if (cols !== values.length) throw new Error(`_apply_rowwise: cols !== values.length`);
         for (let i = 0, row = 0; row < rows; ++row) {
             for (let col = 0; col < cols; ++col, ++i) {
-                data[i] = f(data[i], v(row, col));
+                data[i] = f(data[i], values[col]);
             }
         }
         return this;
     }
 
-    _apply_rowwise_array(values, f) {
-        return this._apply_array(f, (_, j) => values[j]);
-    }
-
-    _apply_colwise_array(values, f) {
+    _apply_colwise(values, f) {
         const data = this._data;
         const [rows, cols] = this.shape;
+        if (rows !== values.length) throw new Error(`_apply_colwise: rows !== values.length`);
         for (let i = 0, row = 0; row < rows; ++row) {
             const val = values[row];
             for (let col = 0; col < cols; ++col, ++i) {
@@ -651,54 +638,35 @@ export class Matrix {
         return this;
     }
 
+    /**
+     * Applies a function to each entry of the matrix.
+     * @private
+     * @param {Matrix|Array|Number} value
+     * @param {Function} f function takes 2 parameters, the value of the actual entry and a value given by {@link value}.
+     * The result of {@link f} gets writen to the Matrix.
+     */
     _apply(value, f) {
         const data = this._data;
         const [rows, cols] = this.shape;
         if (value instanceof Matrix) {
             const values = value.values;
             const [value_rows, value_cols] = value.shape;
-            if (value_rows === 1) {
-                if (cols !== value_cols) {
-                    throw new Error(`cols !== value_cols`);
-                }
-                for (let i = 0, row = 0; row < rows; ++row) {
-                    for (let col = 0; col < cols; ++col, ++i) {
-                        data[i] = f(data[i], values[col]);
-                    }
-                }
-            } else if (value_cols === 1) {
-                if (rows !== value_rows) {
-                    throw new Error(`rows !== value_rows`);
-                }
-                for (let i = 0, row = 0; row < rows; ++row) {
-                    const v = values[row];
-                    for (let col = 0; col < cols; ++col, ++i) {
-                        data[i] = f(data[i], v);
-                    }
-                }
-            } else if (rows == value_rows && cols == value_cols) {
+            if (rows == value_rows && cols == value_cols) {
                 for (let i = 0, n = rows * cols; i < n; ++i) {
                     data[i] = f(data[i], values[i]);
                 }
-            } else {
+            } else if (value_rows === 1) {
+                this._apply_rowwise(values, f);
+            } else if (value_cols === 1) {
+                this._apply_colwise(values, f);
+            } else  {
                 throw new Error(`error`);
             }
         } else if (Matrix.isArray(value)) {
             if (value.length === rows) {
-                for (let i = 0, row = 0; row < rows; ++row) {
-                    const v = value[row];
-                    for (let col = 0; col < cols; ++col, ++i) {
-                        data[i] = f(data[i], v);
-                    }
-                }
-            } else if (value.length === cols) {
-                for (let i = 0, row = 0; row < rows; ++row) {
-                    for (let col = 0; col < cols; ++col, ++i) {
-                        data[i] = f(data[i], value[col]);
-                    }
-                }
+                this._apply_colwise(value, f);
             } else {
-                throw new Error(`error`);
+                this._apply_rowwise(value, f);
             }
         } else { // scalar value
             for (let i = 0, n = rows * cols; i < n; ++i) {
