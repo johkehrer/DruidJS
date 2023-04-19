@@ -30,6 +30,10 @@ export class Matrix {
         this._cols = cols;
         this._data = null;
         if (rows && cols) {
+            if (Matrix.isArray(value) && (rows * cols) === value.length) {
+                this.data = value;
+                return this;
+            }
             const data = this._data = new Float64Array(rows * cols);
             if (!value) return this;
             if (typeof value === "function") {
@@ -154,13 +158,12 @@ export class Matrix {
     set_row(row, values) {
         const cols = this._cols;
         const data = this._data;
+        const offset = row * cols;
         if (Matrix.isArray(values) && values.length === cols) {
-            const offset = row * cols;
             for (let col = 0; col < cols; ++col) {
                 data[offset + col] = values[col];
             }
         } else if (values instanceof Matrix && values.shape[1] === cols && values.shape[0] === 1) {
-            const offset = row * cols;
             for (let col = 0; col < cols; ++col) {
                 data[offset + col] = values._data[col];
             }
@@ -179,7 +182,8 @@ export class Matrix {
     swap_rows(row1, row2) {
         const cols = this._cols;
         const data = this._data;
-        for (let i = row1 * cols, j = row2 * cols, col = 0; col < cols; ++col, ++i, ++j) {
+        const end = (row1 + 1) * cols;
+        for (let i = row1 * cols, j = row2 * cols; i < end; ++i, ++j) {
             const t = data[i];
             data[i] = data[j];
             data[j] = t;
@@ -548,9 +552,11 @@ export class Matrix {
     set_block(offset_row, offset_col, B) {
         const rows = Math.min(this._rows - offset_row, B.shape[0]);
         const cols = Math.min(this._cols - offset_col, B.shape[1]);
-        for (let row = 0; row < rows; ++row) {
+        const B_val = B.values;
+        for (let i = 0, row = 0; row < rows; ++row) {
+            const A_i = this.row(row + offset_row);
             for (let col = 0; col < cols; ++col) {
-                this.set_entry(row + offset_row, col + offset_col, B.entry(row, col));
+                A_i[col + offset_col] = B_val[i++];
             }
         }
         return this;
