@@ -31,7 +31,7 @@ export class Matrix {
         this._data = null;
         if (rows && cols) {
             if (Matrix.isArray(value) && (rows * cols) === value.length) {
-                this.data = value;
+                this._data = value;
                 return this;
             }
             const data = this._data = new Float64Array(rows * cols);
