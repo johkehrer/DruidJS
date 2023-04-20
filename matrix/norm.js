@@ -1,6 +1,6 @@
+import { inner_product } from "../linear_algebra/index.js";
 import { euclidean } from "../metrics/index.js";
-import { Matrix, dot } from "../matrix/index.js";
-//import { neumair_sum } from "../numerical/index";
+import { Matrix } from "../matrix/index.js";
 
 /**
  * Computes the norm of a vector, by computing its distance to **0**.
@@ -21,7 +21,7 @@ export default function (v, metric = euclidean) {
         vector = v;
     }
     if (metric === euclidean) {
-        return Math.sqrt(dot(vector, vector));
+        return Math.sqrt(inner_product(vector, vector));
     }
     const n = vector.length;
     const zeros = new Float64Array(n);

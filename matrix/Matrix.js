@@ -1,7 +1,6 @@
 import { neumair_sum } from "../numerical/index.js";
-import { simultaneous_poweriteration } from "../linear_algebra/index.js";
+import { simultaneous_poweriteration, inner_product } from "../linear_algebra/index.js";
 import { Randomizer } from "../util/index.js";
-import { dot } from "./index.js";
 /**
  * @class
  * @alias Matrix
@@ -450,7 +449,7 @@ export class Matrix {
                 throw new Error(`A.dotTrans(B): A has ${cols_A} cols and B has ${rows_B} rows. Must be equal!`);
             }
             const C = new Matrix(rows_A, cols_B, (row, col) => {
-                return dot(A.row(row), B.row(col));
+                return inner_product(A.row(row), B.row(col));
             });
             return C;
         } else if (Matrix.isArray(B)) {
