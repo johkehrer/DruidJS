@@ -1,5 +1,5 @@
 import { euclidean } from "../metrics/index.js";
-import { Matrix } from "../matrix/index.js";
+import { Matrix, dot } from "../matrix/index.js";
 //import { neumair_sum } from "../numerical/index";
 
 /**
@@ -19,6 +19,9 @@ export default function (v, metric = euclidean) {
         else throw new Error("Matrix must be 1d!");
     } else {
         vector = v;
+    }
+    if (metric === euclidean) {
+        return Math.sqrt(dot(vector, vector));
     }
     const n = vector.length;
     const zeros = new Float64Array(n);

@@ -57,7 +57,7 @@ export class TSNE extends DR {
             let cnt = maxtries;
             let betamin = -Infinity;
             let betamax = Infinity;
-            let beta = 1;
+            let beta = 1; // initial value of precision
 
             // Binary search of precision for i-th conditional distribution
             while (cnt--) {
@@ -208,12 +208,13 @@ export class TSNE extends DR {
 
         return grad;
     }
+
     /** Symmetrize conditional probabilites */
     _symmetrizeP(P) {
         const N = this._N;
         for (let i = 0; i < N; ++i) {
             const P_i = P.row(i);
-            for (let j = i; j < N; ++j) {
+            for (let j = i + 1; j < N; ++j) {
                 P.set_entry(j, i, P_i[j] += P.entry(j, i));
             }
         }

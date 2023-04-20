@@ -1,6 +1,7 @@
 import { neumair_sum } from "../numerical/index.js";
 import { simultaneous_poweriteration } from "../linear_algebra/index.js";
 import { Randomizer } from "../util/index.js";
+import { dot } from "./index.js";
 /**
  * @class
  * @alias Matrix
@@ -449,13 +450,7 @@ export class Matrix {
                 throw new Error(`A.dotTrans(B): A has ${cols_A} cols and B has ${rows_B} rows. Must be equal!`);
             }
             const C = new Matrix(rows_A, cols_B, (row, col) => {
-                const A_i = A.row(row);
-                const B_i = B.row(col);
-                let sum = 0;
-                for (let i = 0; i < cols_A; ++i) {
-                    sum += A_i[i] * B_i[i];
-                }
-                return sum;
+                return dot(A.row(row), B.row(col));
             });
             return C;
         } else if (Matrix.isArray(B)) {
@@ -887,10 +882,11 @@ export class Matrix {
         const data = this._data;
         const rows = this._rows;
         const cols = this._cols;
+        const end = rows * cols;
         const result = Float64Array.from({ length: cols });
         for (let col = 0; col < cols; ++col) {
             let sum = 0;
-            for (let i = col, row = 0; row < rows; ++row, i += cols) {
+            for (let i = col; i < end; i += cols) {
                 sum += data[i];
             }
             result[col] = sum / rows;
