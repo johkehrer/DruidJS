@@ -199,6 +199,7 @@ export class Matrix {
         const cols = this._cols;
         const rows = this._rows;
         const data = this._data;
+        if (cols === 1) return data.slice(0);
         const result = new Float64Array(rows);
         for (let i = col, row = 0; row < rows; ++row, i += cols) {
             result[row] = data[i];
@@ -361,18 +362,19 @@ export class Matrix {
      */
     dot(B) {
         if (B instanceof Matrix) {
-            let A = this;
+            const A = this;
             const [rows_A, cols_A] = A.shape;
             const [rows_B, cols_B] = B.shape;
             if (cols_A !== rows_B) {
                 throw new Error(`A.dot(B): A has ${cols_A} cols and B has ${rows_B} rows. Must be equal!`);
             }
+            const A_val = A.values;
             const B_val = B.values;
+            const B_size = rows_B * cols_B;
             const C = new Matrix(rows_A, cols_B, (row, col) => {
                 let sum = 0;
-                const A_i = A.row(row);
-                for (let i = 0, j = col; i < cols_A; ++i, j += cols_B) {
-                    sum += A_i[i] * B_val[j];
+                for (let i = row * cols_A, j = col; j < B_size; ++i, j += cols_B) {
+                    sum += A_val[i] * B_val[j];
                 }
                 return sum;
             });
@@ -544,14 +546,14 @@ export class Matrix {
      * @returns {Matrix}
      */
     set_block(offset_row, offset_col, B) {
-        const rows = Math.min(this._rows - offset_row, B.shape[0]);
-        const cols = Math.min(this._cols - offset_col, B.shape[1]);
+        const A_val = this._data;
+        const A_cols = this._cols;
         const B_val = B.values;
-        for (let i = 0, row = 0; row < rows; ++row) {
-            const A_i = this.row(row + offset_row);
-            for (let col = 0; col < cols; ++col) {
-                A_i[col + offset_col] = B_val[i++];
-            }
+        const [B_cols, B_rows] = B.shape;
+        for (let i = 0, row = 0; row < B_rows; ++row) {
+            const end = i + B_cols;
+            let j = (row + offset_row) * A_cols + offset_col;
+            while (i < end) A_val[j++] = B_val[i++];
         }
         return this;
     }
@@ -581,14 +583,8 @@ export class Matrix {
             throw new Error(`end_row must be greater than start_row, and end_col must be greater than start_col, but
                 end_row = ${end_row}, start_row = ${start_row}, end_col = ${end_col}, and start_col = ${start_col}!`);
         }
-        const X = new Matrix(end_row - start_row, end_col - start_col, "zeros");
-        for (let row = start_row, new_row = 0; row < end_row; ++row, ++new_row) {
-            for (let col = start_col, new_col = 0; col < end_col; ++col, ++new_col) {
-                X.set_entry(new_row, new_col, this.entry(row, col));
-            }
-        }
+        const X = new Matrix(end_row - start_row, end_col - start_col, (i, j) => this.entry(i + start_row, j + start_col));
         return X;
-        //return new Matrix(end_row - start_row, end_col - start_col, (i, j) => this.entry(i + start_row, j + start_col));
     }
 
     /**
@@ -614,25 +610,27 @@ export class Matrix {
     }
 
     _apply_rowwise(values, f) {
+        let col = 0;
         const data = this._data;
-        const [rows, cols] = this.shape;
+        const cols = this._cols;
+        const end = this._rows * cols;
         if (cols !== values.length) throw new Error(`_apply_rowwise: cols !== values.length`);
-        for (let i = 0, row = 0; row < rows; ++row) {
-            for (let col = 0; col < cols; ++col, ++i) {
-                data[i] = f(data[i], values[col]);
+        for (const col_val of values) {
+            for (let i = col++; i < end; i += cols) {
+                data[i] = f(data[i], col_val);
             }
         }
         return this;
     }
 
     _apply_colwise(values, f) {
+        let i = 0;
         const data = this._data;
-        const [rows, cols] = this.shape;
-        if (rows !== values.length) throw new Error(`_apply_colwise: rows !== values.length`);
-        for (let i = 0, row = 0; row < rows; ++row) {
-            const val = values[row];
+        const cols = this._cols;
+        if (this._rows !== values.length) throw new Error(`_apply_colwise: rows !== values.length`);
+        for (const row_val of values) {
             for (let col = 0; col < cols; ++col, ++i) {
-                data[i] = f(data[i], val);
+                data[i] = f(data[i], row_val);
             }
         }
         return this;
@@ -780,10 +778,11 @@ export class Matrix {
     set shape([rows, cols, value = () => 0]) {
         this._rows = rows;
         this._cols = cols;
+        const data =
         this._data = new Float64Array(rows * cols);
         for (let i = 0, row = 0; row < rows; ++row) {
             for (let col = 0; col < cols; ++col, ++i) {
-                this._data[i] = value(row, col);
+                data[i] = value(row, col);
             }
         }
         return this;
@@ -909,16 +908,19 @@ export class Matrix {
         const cols = b.shape[1];
         let result = new Matrix(rows, 0);
         for (let i = 0; i < cols; ++i) {
-            const b_i = Matrix.from(b.col(i)).T;
+            const b_i = new Matrix(rows, 1, b.col(i));
             let x = new Matrix(rows, 1, () => randomizer.random);
             let r = b_i.sub(A.dot(x));
             let d = r.clone();
             do {
                 const z = A.dot(d);
-                const alpha = r.transDot(r).entry(0, 0) / d.transDot(z).entry(0, 0);
-                x = x.add(d.mult(alpha));
+                const r_dot_r = inner_product(r.values, r.values);
+                const alpha = r_dot_r / inner_product(d.values, z.values);
+                // const alpha = r.transDot(r).entry(0, 0) / d.transDot(z).entry(0, 0);
+                x.add(d.mult(alpha), { inline: true });
                 const r_next = r.sub(z.mult(alpha));
-                const beta = r_next.transDot(r_next).entry(0, 0) / r.transDot(r).entry(0, 0);
+                // const beta = r_next.transDot(r_next).entry(0, 0) / r.transDot(r).entry(0, 0);
+                const beta = inner_product(r_next.values, r_next.values) / r_dot_r;
                 d = r_next.add(d.mult(beta));
                 r = r_next;
             } while (Math.abs(r.mean) > tol);
