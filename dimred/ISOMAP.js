@@ -96,7 +96,7 @@ export class ISOMAP extends DR {
 
         // compute d eigenvectors
         const { eigenvectors: V } = simultaneous_poweriteration(B, d, eig_args);
-        this.Y = Matrix.from(V).transpose();
+        this.Y = Matrix.from(V, "col");
         // return embedding
         return this.projection;
     }

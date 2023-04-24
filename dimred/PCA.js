@@ -60,7 +60,7 @@ export class PCA extends DR {
         const X_cent = X.sub(X.meanCols);
         const C = X_cent.transDot(X_cent);
         const { eigenvectors: V } = simultaneous_poweriteration(C, d, eig_args);
-        this.V = Matrix.from(V).transpose();
+        this.V = Matrix.from(V, "col");
         return this.V;
     }
 

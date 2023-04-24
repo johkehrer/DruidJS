@@ -104,7 +104,7 @@ export class MLLE{
         //this.Y = Matrix.from(Y.slice(1)).transpose()
 
         let { eigenvectors: Y } = simultaneous_poweriteration(Phi, d + 1);
-        this.Y = Matrix.from(Y.slice(1)).transpose()
+        this.Y = Matrix.from(Y.slice(1), "col");
 
         // return embedding
         return this.Y;

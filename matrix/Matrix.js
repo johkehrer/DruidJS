@@ -86,28 +86,24 @@ export class Matrix {
         if (A instanceof Matrix) {
             return A.clone();
         } else if (Matrix.isArray(A)) {
-            let m = A.length;
-            if (m === 0) throw new Error("Array is empty");
-            // 1d
+            const m = A.length;
             if (!Matrix.isArray(A[0])) {
+                // 1d
                 if (type === "row") {
-                    return new Matrix(1, m, (_, j) => A[j]);
+                    return new Matrix(1, m, A.slice());
                 } else if (type === "col") {
-                    return new Matrix(m, 1, (i) => A[i]);
+                    return new Matrix(m, 1, A.slice());
                 } else if (type === "diag") {
                     return new Matrix(m, m, (i, j) => (i == j ? A[i] : 0));
                 } else {
                     throw new Error("1d array has NaN entries");
                 }
-                // 2d
             } else {
-                let n = A[0].length;
-                for (let row = 0; row < m; ++row) {
-                    if (A[row].length !== n) {
-                        throw new Error("various array lengths");
-                    }
-                }
-                return new Matrix(m, n, (i, j) => A[i][j]);
+                // 2d
+                const n = A[0].length;
+                return type === "row"
+                    ? new Matrix(m, n, (i, j) => A[i][j])
+                    : new Matrix(n, m, (i, j) => A[j][i]);
             }
         } else if (typeof A === "number") {
             return new Matrix(1, 1, A);

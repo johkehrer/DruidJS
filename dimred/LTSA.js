@@ -71,7 +71,7 @@ export class LTSA extends DR {
 
         // 3. Aligning global coordinates
         const { eigenvectors: Y } = simultaneous_poweriteration(B, d + 1, eig_args);
-        this.Y = Matrix.from(Y.slice(1)).transpose();
+        this.Y = Matrix.from(Y.slice(1), "col");
 
         // return embedding
         return this.projection;

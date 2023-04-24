@@ -46,7 +46,7 @@ export class MDS extends DR {
         const B = new Matrix(rows, rows, (i, j) => A.entry(i, j) - ai_[i] - a_j[j] + a__);
 
         const { eigenvectors: V } = simultaneous_poweriteration(B, d, eig_args);
-        this.Y = Matrix.from(V).transpose();
+        this.Y = Matrix.from(V, "col");
 
         return this.projection;
     }

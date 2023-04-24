@@ -86,7 +86,7 @@ export class LDA extends DR {
         }
 
         let { eigenvectors: V } = simultaneous_poweriteration(S_w.inverse().dot(S_b), d, eig_args);
-        V = Matrix.from(V).transpose();
+        V = Matrix.from(V, "col");
         this.Y = X.dot(V);
 
         // return embedding
