@@ -129,7 +129,7 @@ export class Randomizer {
                 sample[i] = index_list.splice(random_index, 1)[0];
             }
             return sample.map((d) => A.row(d));
-        } else if (Array.isArray(A) || A instanceof Float64Array) {
+        } else if (Matrix.isArray(A)) {
             let rows = A.length;
             if (n > rows) {
                 throw new Error("n bigger than A!");

@@ -23,7 +23,7 @@ export class DR {
      */
     constructor(X, default_parameters, parameters) {
         this._parameters = Object.assign(Object.seal(default_parameters), parameters);
-        if (Array.isArray(X)) {
+        if (Matrix.isArray(X)) {
             this._type = "array";
             this.X = Matrix.from(X);
         } else if (X instanceof Matrix) {

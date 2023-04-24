@@ -38,7 +38,7 @@ export class PCA extends DR {
             const X = this.X;
             this.Y = X.dot(V);
             return this.projection;
-        } else if (Array.isArray(A)) {
+        } else if (Matrix.isArray(A)) {
             return Matrix.from(A).dot(V).asArray;
         } else if (A instanceof Matrix) {
             return A.dot(V);
