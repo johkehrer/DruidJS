@@ -444,14 +444,21 @@ export class Matrix {
      */
     dotTrans(B) {
         if (B instanceof Matrix) {
-            let A = this;
+            const A = this;
             const [rows_A, cols_A] = A.shape;
-            const [cols_B, rows_B] = B.shape;
+            const [cols_B, rows_B] = B.shape; // transpose matrix
             if (cols_A !== rows_B) {
                 throw new Error(`A.dotTrans(B): A has ${cols_A} cols and B has ${rows_B} rows. Must be equal!`);
             }
+            const A_val = A.values;
+            const B_val = B.values;
             const C = new Matrix(rows_A, cols_B, (row, col) => {
-                return inner_product(A.row(row), B.row(col));
+                let sum = 0, i = row * cols_A, j = col * rows_B;
+                const end = i + cols_A;
+                while (i < end) {
+                    sum += A_val[i++] * B_val[j++];
+                }
+                return sum;
             });
             return C;
         } else if (Matrix.isArray(B)) {
