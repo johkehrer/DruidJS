@@ -543,14 +543,14 @@ export class Matrix {
      * @returns {Matrix}
      */
     set_block(offset_row, offset_col, B) {
-        const A_val = this._data;
+        const A_data = this._data;
         const A_cols = this._cols;
-        const B_val = B.values;
-        const [B_cols, B_rows] = B.shape;
+        const B_data = B.values;
+        const [B_rows, B_cols] = B.shape;
         for (let i = 0, row = 0; row < B_rows; ++row) {
             const end = i + B_cols;
             let j = (row + offset_row) * A_cols + offset_col;
-            while (i < end) A_val[j++] = B_val[i++];
+            while (i < end) A_data[j++] = B_data[i++];
         }
         return this;
     }
