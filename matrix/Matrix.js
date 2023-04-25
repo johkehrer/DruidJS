@@ -895,8 +895,8 @@ export class Matrix {
         }
         const rows = A.shape[0];
         const cols = b.shape[1];
-        let result = new Matrix(rows, 0);
         const inline = { inline: true };
+        const result = new Matrix(rows, cols);
         for (let i = 0; i < cols; ++i) {
             const b_i = new Matrix(rows, 1, b.col(i));
             const x = new Matrix(rows, 1, () => randomizer.random);
@@ -914,7 +914,7 @@ export class Matrix {
                 p.add(r, inline);
                 rs = rs_new;
             }
-            result = result.concat(x, "horizontal");
+            result.set_block(0, i, x);
         }
         return result;
     }
