@@ -359,18 +359,16 @@ export class Matrix {
     dot(B) {
         if (B instanceof Matrix) {
             const A = this;
-            const [rows_A, cols_A] = A.shape;
-            const [rows_B, cols_B] = B.shape;
-            if (cols_A !== rows_B) {
-                throw new Error(`A.dot(B): A has ${cols_A} cols and B has ${rows_B} rows. Must be equal!`);
-            }
-            const A_val = A.values;
-            const B_val = B.values;
-            const B_size = rows_B * cols_B;
-            const C = new Matrix(rows_A, cols_B, (row, col) => {
-                let sum = 0;
-                for (let i = row * cols_A, j = col; j < B_size; ++i, j += cols_B) {
-                    sum += A_val[i] * B_val[j];
+            const A_data = A.values;
+            const B_data = B.values;
+            const [A_rows, A_cols] = A.shape;
+            const [B_rows, B_cols] = B.shape;
+            const B_size = B_rows * B_cols;
+            this._check_size(A_cols, B_rows, "A.dot(B)");
+            const C = new Matrix(A_rows, B_cols, (row, col) => {
+                let i = row * A_cols, j = col, sum = 0;
+                for (; j < B_size; ++i, j += B_cols) {
+                    sum += A_data[i] * B_data[j];
                 }
                 return sum;
             });
@@ -378,9 +376,7 @@ export class Matrix {
         } else if (Matrix.isArray(B)) {
             const rows = this._rows;
             const C = new Array(rows);
-            if (B.length !== rows) {
-                throw new Error(`A.dot(B): A has ${rows} cols and B has ${B.length} rows. Must be equal!`);
-            }
+            this._check_size(rows, B.length, "A.dot(B)");
             for (let row = 0; row < rows; ++row) {
                 C[row] = B[row] * neumair_sum(this.row(row));
             }
@@ -399,29 +395,25 @@ export class Matrix {
      */
     transDot(B) {
         if (B instanceof Matrix) {
-            let A = this;
-            const [cols_A, rows_A] = A.shape; // transpose matrix
-            const [rows_B, cols_B] = B.shape;
-            if (cols_A !== rows_B) {
-                throw new Error(`A.transDot(B): A has ${cols_A} cols and B has ${rows_B} rows. Must be equal!`);
-            }
-            const A_val = A.values;
-            const B_val = B.values;
-            const A_size = rows_A * cols_A;
-            const C = new Matrix(rows_A, cols_B, (row, col) => {
-                let sum = 0;
-                for (let i = row, j = col; i < A_size; i += rows_A, j += cols_B) {
-                    sum += A_val[i] * B_val[j];
+            const A = this;
+            const A_data = A.values;
+            const B_data = B.values;
+            const [A_cols, A_rows] = A.shape; // transpose matrix
+            const [B_rows, B_cols] = B.shape;
+            const A_size = A_rows * A_cols;
+            this._check_size(A_cols, B_rows, "A.transDot(B)");
+            const C = new Matrix(A_rows, B_cols, (row, col) => {
+                let i = row, j = col, sum = 0;
+                for (; i < A_size; i += A_rows, j += B_cols) {
+                    sum += A_data[i] * B_data[j];
                 }
                 return sum;
             });
             return C;
         } else if (Matrix.isArray(B)) {
             const rows = this._cols;
-            if (B.length !== rows) {
-                throw new Error(`A.transDot(B): A has ${rows} cols and B has ${B.length} rows. Must be equal!`);
-            }
             const C = new Array(rows);
+            this._check_size(rows, B.length, "A.transDot(B)");
             for (let row = 0; row < rows; ++row) {
                 C[row] = B[row] * neumair_sum(this.col(row));
             }
@@ -441,34 +433,36 @@ export class Matrix {
     dotTrans(B) {
         if (B instanceof Matrix) {
             const A = this;
-            const [rows_A, cols_A] = A.shape;
-            const [cols_B, rows_B] = B.shape; // transpose matrix
-            if (cols_A !== rows_B) {
-                throw new Error(`A.dotTrans(B): A has ${cols_A} cols and B has ${rows_B} rows. Must be equal!`);
-            }
-            const A_val = A.values;
-            const B_val = B.values;
-            const C = new Matrix(rows_A, cols_B, (row, col) => {
-                let sum = 0, i = row * cols_A, j = col * rows_B;
-                const end = i + cols_A;
+            const A_data = A.values;
+            const B_data = B.values;
+            const [A_rows, A_cols] = A.shape;
+            const [B_cols, B_rows] = B.shape; // transpose matrix
+            this._check_size(A_cols, B_rows, "A.dotTrans(B)");
+            const C = new Matrix(A_rows, B_cols, (row, col) => {
+                let sum = 0, i = row * A_cols, j = col * B_rows;
+                const end = i + A_cols;
                 while (i < end) {
-                    sum += A_val[i++] * B_val[j++];
+                    sum += A_data[i++] * B_data[j++];
                 }
                 return sum;
             });
             return C;
         } else if (Matrix.isArray(B)) {
             const rows = this._rows;
-            if (B.length !== rows) {
-                throw new Error(`A.dotTrans(B): A has ${rows} cols and B has ${B.length} rows. Must be equal!`);
-            }
             const C = new Array(rows);
+            this._check_size(rows, B.length, "A.dotTrans(B)");
             for (let row = 0; row < rows; ++row) {
                 C[row] = B[row] * neumair_sum(this.row(row));
             }
             return C;
         } else {
             throw new Error(`B must be Matrix or Array`);
+        }
+    }
+
+    _check_size(A_cols, B_rows, msg) {
+        if (A_cols !== B_rows) {
+            throw new Error(`${msg}: A has ${A_cols} cols and B has ${B_rows} rows. Must be equal!`);
         }
     }
 
@@ -616,10 +610,10 @@ export class Matrix {
         let col = 0;
         const data = this._data;
         const cols = this._cols;
-        const end = this._rows * cols;
+        const size = this._rows * cols;
         if (cols !== values.length) throw new Error(`_apply_rowwise: cols !== values.length`);
         for (const col_val of values) {
-            for (let i = col++; i < end; i += cols) {
+            for (let i = col++; i < size; i += cols) {
                 data[i] = f(data[i], col_val);
             }
         }
@@ -682,11 +676,7 @@ export class Matrix {
      * @returns {Matrix}
      */
     clone() {
-        let B = new Matrix();
-        B._rows = this._rows;
-        B._cols = this._cols;
-        B._data = this._data.slice(0);
-        return B;
+        return new Matrix(this._rows, this._cols, this._data.slice(0));
     }
 
     /**
@@ -820,9 +810,7 @@ export class Matrix {
      * @returns {Float64Array}
      */
     get diag() {
-        const rows = this._rows;
-        const cols = this._cols;
-        const min_row_col = Math.min(rows, cols);
+        const min_row_col = Math.min(this._rows, this._cols);
         let result = new Float64Array(min_row_col);
         for (let i = 0; i < min_row_col; ++i) {
             result[i] = this.entry(i, i);
@@ -853,8 +841,7 @@ export class Matrix {
      * @returns {Float64Array}
      */
     get values() {
-        const data = this._data;
-        return data;
+        return this._data;
     }
 
     /**
@@ -867,10 +854,8 @@ export class Matrix {
         const cols = this._cols;
         const result = Float64Array.from({ length: rows });
         for (let i = 0, row = 0; row < rows; ++row) {
-            let sum = 0;
-            for (let col = 0; col < cols; ++col, ++i) {
-                sum += data[i];
-            }
+            let cnt = cols, sum = 0;
+            while (cnt--) sum += data[i++];
             result[row] = sum / cols;
         }
         return result;
@@ -883,11 +868,11 @@ export class Matrix {
         const data = this._data;
         const rows = this._rows;
         const cols = this._cols;
-        const end = rows * cols;
+        const size = rows * cols;
         const result = Float64Array.from({ length: cols });
         for (let col = 0; col < cols; ++col) {
-            let sum = 0;
-            for (let i = col; i < end; i += cols) {
+            let i = col, sum = 0;
+            for (; i < size; i += cols) {
                 sum += data[i];
             }
             result[col] = sum / rows;
@@ -902,6 +887,7 @@ export class Matrix {
      * @param {Randomizer} [randomizer=null]
      * @param {Number} [tol=1e-3]
      * @returns {Matrix}
+     * @see {@link https://en.wikipedia.org/wiki/Conjugate_gradient_method}
      */
     static solve_CG(A, b, randomizer, tol = 1e-3) {
         if (randomizer === null) {
@@ -910,23 +896,24 @@ export class Matrix {
         const rows = A.shape[0];
         const cols = b.shape[1];
         let result = new Matrix(rows, 0);
+        const inline = { inline: true };
         for (let i = 0; i < cols; ++i) {
             const b_i = new Matrix(rows, 1, b.col(i));
-            let x = new Matrix(rows, 1, () => randomizer.random);
-            let r = b_i.sub(A.dot(x));
-            let d = r.clone();
-            do {
-                const z = A.dot(d);
-                const r_dot_r = inner_product(r.values, r.values);
-                const alpha = r_dot_r / inner_product(d.values, z.values);
-                // const alpha = r.transDot(r).entry(0, 0) / d.transDot(z).entry(0, 0);
-                x.add(d.mult(alpha), { inline: true });
-                const r_next = r.sub(z.mult(alpha));
-                // const beta = r_next.transDot(r_next).entry(0, 0) / r.transDot(r).entry(0, 0);
-                const beta = inner_product(r_next.values, r_next.values) / r_dot_r;
-                d = r_next.add(d.mult(beta));
-                r = r_next;
-            } while (Math.abs(r.mean) > tol);
+            const x = new Matrix(rows, 1, () => randomizer.random);
+            const r = b_i.sub(A.dot(x), inline);
+            const p = r.clone();
+            let rs = inner_product(r.values, r.values);
+            while (true) {
+                const Ap = A.dot(p);
+                const alpha = rs / inner_product(p.values, Ap.values);
+                x.add(p.mult(alpha), inline);
+                r.sub(Ap.mult(alpha), inline);
+                const rs_new = inner_product(r.values, r.values);
+                if (rs_new < tol * tol) break;
+                p.mult(rs_new / rs, inline);
+                p.add(r, inline);
+                rs = rs_new;
+            }
             result = result.concat(x, "horizontal");
         }
         return result;
