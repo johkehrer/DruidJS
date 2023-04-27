@@ -15,10 +15,7 @@ export default function (start, end, number = null) {
     if (number < 2) {
         return number === 1 ? [start] : [];
     }
-    let result = new Array(number);
-    number -= 1;
-    for (let i = number; i >= 0; --i) {
-        result[i] = (i * end + (number - i) * start) / number;
-    }
+    const step = (end - start) / (number - 1);
+    const result = Array.from({ length: number }, (_, i) => start + i * step);
     return result;
 }

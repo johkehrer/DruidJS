@@ -12,8 +12,9 @@ export class Matrix {
      * @memberof module:matrix
      * @param {number} rows - The amount of rows of the matrix.
      * @param {number} cols - The amount of columns of the matrix.
-     * @param {(function|string|number)} value=0 - Can be a function with row and col as parameters, a number, or "zeros", "identity" or "I", or "center".
+     * @param {(function|string|number|Array|Float64Array)} value=0 - Can be a function with row and col as parameters, an array representing the matrix values, a number, or "zeros", "identity" or "I", or "center".
      *  - **function**: for each entry the function gets called with the parameters for the actual row and column.
+     *  - **Array|Float64Array**: array representing the matrix values.
      *  - **string**: allowed are
      *      - "zero", creates a zero matrix.
      *      - "identity" or "I", creates an identity matrix.
