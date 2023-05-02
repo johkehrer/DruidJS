@@ -19,7 +19,7 @@ import { euclidean_squared } from "../metrics/index.js";
 export default function (A, k = 2, {seed = 1212, max_iterations = 100, qr = qr_gramschmidt, tol = 1e-8} = {}) {
     const randomizer = seed instanceof Randomizer ? seed : new Randomizer(seed);
     if (!(A instanceof Matrix)) A = Matrix.from(A);
-    const n = A.shape[0];
+    const n = A.rows;
     let { Q, R } = qr(new Matrix(n, k, () => (randomizer.random - .5) * 2));
     while (max_iterations--) {
         const oldQ = Q;

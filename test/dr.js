@@ -1,7 +1,7 @@
 import * as druid from "./test_index.js";
 //import "../dist/druid.js";
 import * as assert from "assert";
-/* 
+/*
 describe("DR", () => {
     describe("transforms", () => {
         it("PCA: static transform", () => {
@@ -45,7 +45,7 @@ describe("DR", () => {
     describe("async", () => {
         it("UMAP: static transform_async.", async () => {
             const Y = await druid.UMAP.transform_async(X);
-            assert.deepEqual(Y.shape, [X.shape[0], 2]);
+            assert.deepEqual(Y.shape, [X.rows, 2]);
             for (const y of Y.values) {
                 assert.ok(!Number.isNaN(y));
             }
@@ -53,7 +53,7 @@ describe("DR", () => {
         it("UMAP: transform_async", async () => {
             const DR = new druid.UMAP(X);
             const Y = await DR.transform_async();
-            assert.deepEqual(Y.shape, [X.shape[0], 2]);
+            assert.deepEqual(Y.shape, [X.rows, 2]);
             for (const y of Y.values) {
                 assert.ok(!Number.isNaN(y));
             }

@@ -1,5 +1,5 @@
 import { simultaneous_poweriteration } from "../linear_algebra/index.js";
-import { Matrix } from "../matrix/index.js";
+import { distance_matrix, Matrix } from "../matrix/index.js";
 import { Heap } from "../datastructure/index.js";
 import { DR } from "./DR.js";
 import euclidean from "../metrics/euclidean.js";
@@ -26,7 +26,7 @@ export class ISOMAP extends DR {
      */
     constructor(X, parameters) {
         super(X, { neighbors: undefined, d: 2, metric: euclidean, seed: 1212, eig_args: {} }, parameters);
-        this.parameter("neighbors", Math.min(this._parameters.neighbors ?? Math.max(Math.floor(this.X.shape[0] / 10), 2), this._N - 1));
+        this.parameter("neighbors", Math.min(this._parameters.neighbors ?? Math.max(Math.floor(this.X.rows / 10), 2), this._N - 1));
         if (!this._parameters.eig_args.hasOwnProperty("seed")) {
             this._parameters.eig_args.seed = this._randomizer;
         }
@@ -43,8 +43,7 @@ export class ISOMAP extends DR {
         const rows = this._N;
         const { d, metric, eig_args, neighbors } = this._parameters;
         // TODO: make knn extern and parameter for constructor or transform?
-        const D = new Matrix();
-        D.shape = [rows, rows, (i, j) => (i <= j ? metric(X.row(i), X.row(j)) : D.entry(j, i))];
+        const D = distance_matrix(X, metric);
         const kNearestNeighbors = [];
         for (let i = 0; i < rows; ++i) {
             const row = [];

@@ -39,7 +39,7 @@ export class TriMap extends DR {
      */
     init(pca = null, knn = null) {
         const X = this.X;
-        const N = X.shape[0];
+        const N = X.rows;
         const { c, d, metric, seed } = this._parameters;
         this.n_inliers = 2 * c;
         this.n_outliers = 1 * c;
@@ -49,7 +49,7 @@ export class TriMap extends DR {
         const { triplets, weights } = this._generate_triplets(this.n_inliers, this.n_outliers, this.n_random);
         this.triplets = triplets;
         this.weights = weights;
-        this.lr = (1000 * N) / triplets.shape[0];
+        this.lr = (1000 * N) / triplets.rows;
         this.C = Infinity;
         this.vel = new Matrix(N, d, 0);
         this.gain = new Matrix(N, d, 1);
@@ -65,7 +65,7 @@ export class TriMap extends DR {
     _generate_triplets(n_inliers, n_outliers, n_random) {
         const { metric, weight_adj } = this._parameters;
         const X = this.X;
-        const N = X.shape[0];
+        const N = X.rows;
         const knn = this.knn;
         const n_extra = Math.min(n_inliers + 20, N);
         const nbrs = new Matrix(N, n_extra);
@@ -89,7 +89,7 @@ export class TriMap extends DR {
         const P = this._find_p(knn_distances, sig, nbrs);
 
         let triplets = this._sample_knn_triplets(P, nbrs, n_inliers, n_outliers);
-        let n_triplets = triplets.shape[0];
+        let n_triplets = triplets.rows;
         const outlier_distances = new Float64Array(n_triplets);
         for (let i = 0; i < n_triplets; ++i) {
             const j = triplets.entry(i, 0);
@@ -103,7 +103,7 @@ export class TriMap extends DR {
             triplets = triplets.concat(random_triplets, "vertical");
             weights = Float64Array.from([...weights, ...random_weights]);
         }
-        n_triplets = triplets.shape[0];
+        n_triplets = triplets.rows;
         let max_weight = -Infinity;
         for (let i = 0; i < n_triplets; ++i) {
             if (isNaN(weights[i])) {
@@ -152,7 +152,7 @@ export class TriMap extends DR {
      *
      */
     _sample_knn_triplets(P, nbrs, n_inliers, n_outliers) {
-        const N = nbrs.shape[0];
+        const N = nbrs.rows;
         const triplets = new Matrix(N * n_inliers * n_outliers, 3);
         for (let i = 0; i < N; ++i) {
             let n_i = i * n_inliers * n_outliers;
@@ -205,7 +205,7 @@ export class TriMap extends DR {
      * @param {Float64Array} sig - scaling factor for the distances.
      */
     _find_weights(triplets, P, nbrs, outlier_distances, sig) {
-        const n_triplets = triplets.shape[0];
+        const n_triplets = triplets.rows;
         const weights = new Float64Array(n_triplets);
         for (let t = 0; t < n_triplets; ++t) {
             const i = triplets.entry(t, 0);
@@ -228,7 +228,7 @@ export class TriMap extends DR {
     _sample_random_triplets(X, n_random, sig) {
         const metric = this.parameter("metric");
         const randomizer = this._randomizer;
-        const N = X.shape[0];
+        const N = X.rows;
         const random_triplets = new Matrix(N * n_random, 3);
         const random_weights = new Float64Array(N * n_random);
         for (let i = 0; i < N; ++i) {
@@ -268,7 +268,7 @@ export class TriMap extends DR {
         const triplets = this.triplets;
         const weights = this.weights;
         const [N, dim] = Y.shape;
-        const n_triplets = triplets.shape[0];
+        const n_triplets = triplets.rows;
         const grad = new Matrix(N, dim, 0);
         let y_ij = new Float64Array(dim);
         let y_ik = new Float64Array(dim);

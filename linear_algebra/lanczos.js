@@ -3,7 +3,7 @@ import { Matrix, norm } from "../matrix/index.js";
 
 export default function(A, k = 2, max_iterations = 100, metric = euclidean) {
     if (!(A instanceof Matrix)) A = Matrix.from(A);
-    let n = A.shape[0]
+    let n = A.rows
     let v = new Matrix(n, 1, () => Math.random());
     v = v.divide(norm(v._data, metric))
     

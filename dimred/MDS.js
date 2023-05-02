@@ -35,7 +35,7 @@ export class MDS extends DR {
      */
     transform() {
         const X = this.X;
-        const rows = X.shape[0];
+        const rows = X.rows;
         const { d, metric, eig_args } = this._parameters;
         const A = metric === "precomputed" ? X : distance_matrix(X, metric);
         const ai_ = A.meanCols;
@@ -55,17 +55,10 @@ export class MDS extends DR {
      * @returns {Number} - the stress of the projection.
      */
     stress() {
-        const N = this.X.shape[0];
+        const N = this.X.rows;
         const Y = this.Y;
         const d_X = this._d_X;
-        const d_Y = new Matrix();
-        d_Y.shape = [
-            N,
-            N,
-            (i, j) => {
-                return i < j ? euclidean(Y.row(i), Y.row(j)) : d_Y.entry(j, i);
-            },
-        ];
+        const d_Y = distance_matrix(Y, euclidean);
         let top_sum = 0;
         let bottom_sum = 0;
         for (let i = 0; i < N; ++i) {

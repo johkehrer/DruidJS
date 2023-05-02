@@ -20,7 +20,7 @@ export class Hierarchical_Clustering {
         this._matrix = matrix instanceof Matrix ? matrix : Matrix.from(matrix);
         this._metric = metric;
         this._linkage = linkage;
-        if (metric === "precomputed" && this._matrix.shape[0] !== this._matrix.shape[1]) {
+        if (metric === "precomputed" && this._matrix.rows !== this._matrix.cols) {
             throw new Error("If metric is 'precomputed', then matrix has to be square!");
         }
         this.init();
@@ -73,7 +73,7 @@ export class Hierarchical_Clustering {
     init() {
         const metric = this._metric;
         const A = this._matrix;
-        const n = (this._n = A.shape[0]);
+        const n = (this._n = A.rows);
         const d_min = (this._d_min = new Float64Array(n));
         let distance_matrix;
         if (metric !== "precomputed") {

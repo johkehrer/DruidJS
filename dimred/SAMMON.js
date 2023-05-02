@@ -35,7 +35,7 @@ export class SAMMON extends DR {
      * @private
      */
     init() {
-        const N = this.X.shape[0];
+        const N = this.X.rows;
         const { d, metric, init_DR: init_DR, init_parameters: DR_parameters } = this._parameters;
         if (init_DR === "random") {
             const randomizer = this._randomizer;
@@ -81,7 +81,7 @@ export class SAMMON extends DR {
     _step() {
         const MAGIC = this.parameter("magic");
         const D = this.distance_matrix;
-        const N = this.X.shape[0];
+        const N = this.X.rows;
         const { d, metric } = this._parameters;
         let Y = this.Y;
 

@@ -111,7 +111,7 @@ export class UMAP extends DR {
         const rhos = [];
         const sigmas = [];
         const X = this.X;
-        const N = X.shape[0];
+        const N = X.rows;
         //const distances = [...X].map(x_i => knn.search(x_i, k).raw_data().reverse());
 
         const distances = [];
@@ -197,7 +197,7 @@ export class UMAP extends DR {
      * @returns {Matrix}
      */
     _fuzzy_simplicial_set(X, n_neighbors) {
-        const N = X.shape[0];
+        const N = X.rows;
         const { metric, _set_op_mix_ratio } = this._parameters;
         const knn = metric === "precomputed" ? new KNN(X, "precomputed") : new BallTree(X.to2dArray, metric);
         let { distances, sigmas, rhos } = this._smooth_knn_dist(knn, n_neighbors);

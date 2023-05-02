@@ -22,7 +22,7 @@ import { neumair_sum } from "../numerical/index.js";
  */
 export default function(data, n, x0, beta, max_iter=100, seed) {
     const randomizer = new Randomizer(seed);
-    const N = data.shape[0];
+    const N = data.rows;
     //let b = new Matrix(N, n, () => randomizer.random);
     let b = [];
 

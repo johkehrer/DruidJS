@@ -33,7 +33,7 @@ export class FASTMAP extends DR {
      */
     _choose_distant_objects(dist) {
         const X = this.X;
-        const N = X.shape[0];
+        const N = X.rows;
         let a_index = (this._randomizer.random_int % N) - 1;
         let b_index = null;
         let max_dist = -Infinity;
@@ -61,7 +61,7 @@ export class FASTMAP extends DR {
      */
     transform() {
         const X = this.X;
-        const N = X.shape[0];
+        const N = X.rows;
         const { d, metric } = this._parameters;
         const Y = new Matrix(N, d, 0);
         let dist = (a, b) => metric(X.row(a), X.row(b));

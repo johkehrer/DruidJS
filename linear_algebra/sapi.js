@@ -13,7 +13,7 @@ import { Matrix, norm } from "../matrix/index.js";
  */
 export default function (A, max_iterations = 100, batch_size = 10, beta = 0.05, metric = euclidean) {
     if (!(A instanceof Matrix)) A = Matrix.from(A);
-    let n = A.shape[0];
+    let n = A.rows;
     let r = new Matrix(n, 1, () => Math.random());
     let r_last = new Matrix(n, 1, 0);
 

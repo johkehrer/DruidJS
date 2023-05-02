@@ -20,8 +20,8 @@ describe("Matrix", () => {
 
         assert.ok(A.dot(B));
         let C = A.dot(B);
-        for (let i = 0; i < C.shape[0]; ++i) {
-            for (let j = 0; j < C.shape[1]; ++j) {
+        for (let i = 0; i < C.rows; ++i) {
+            for (let j = 0; j < C.cols; ++j) {
                 assert.ok(!Number.isNaN(C.entry(i, j)));
             }
         }

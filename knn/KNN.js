@@ -19,7 +19,7 @@ export class KNN {
     constructor(elements=null, metric=euclidean) {
         this._metric = metric;
         this._elements = elements instanceof Matrix ? elements : Matrix.from(elements);
-        const N = this._elements.shape[0];
+        const N = this._elements.rows;
         if (metric === "precomputed") {
             this._D = this._elements.clone();
         } else {

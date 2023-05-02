@@ -12,7 +12,7 @@ import { euclidean } from "../metrics/index.js";
  * @returns {Array<Object>} -
  */
 export default function (A, k, metric = euclidean) {
-    const rows = A.shape[0];
+    const rows = A.rows;
     const nN = new Array(rows);
     const D = metric == "precomputed" ? A : distance_matrix(A, metric);
     for (let row = 0; row < rows; ++row) {

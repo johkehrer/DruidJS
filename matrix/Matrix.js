@@ -156,13 +156,13 @@ export class Matrix {
         const cols = this._cols;
         const data = this._data;
         const offset = row * cols;
-        if (Matrix.isArray(values) && values.length === cols) {
-            for (let col = 0; col < cols; ++col) {
-                data[offset + col] = values[col];
-            }
-        } else if (values instanceof Matrix && values.shape[1] === cols && values.shape[0] === 1) {
+        if (values instanceof Matrix && values.cols === cols && values.rows === 1) {
             for (let col = 0; col < cols; ++col) {
                 data[offset + col] = values._data[col];
+            }
+        } else if (Matrix.isArray(values) && values.length === cols) {
+            for (let col = 0; col < cols; ++col) {
+                data[offset + col] = values[col];
             }
         } else {
             throw new Error("Values not valid! Needs to be either an Array, a Float64Array, or a fitting Matrix!")
@@ -765,6 +765,22 @@ export class Matrix {
     }
 
     /**
+     * Returns the number of rows of the Matrix.
+     * @returns {Number}
+     */
+    get rows() {
+        return this._rows;
+    }
+
+    /**
+     * Returns the number of columns of the Matrix.
+     * @returns {Number}
+     */
+    get cols() {
+        return this._cols;
+    }
+
+    /**
      * Returns the matrix in the given shape with the given function which returns values for the entries of the matrix.
      * @param {Array} parameter - takes an Array in the form [rows, cols, value], where rows and cols are the number of rows and columns of the matrix, and value is a function which takes two parameters (row and col) which has to return a value for the colth entry of the rowth row.
      * @returns {Matrix}
@@ -894,8 +910,8 @@ export class Matrix {
         if (randomizer === null) {
             randomizer = new Randomizer();
         }
-        const rows = A.shape[0];
-        const cols = b.shape[1];
+        const rows = A.rows;
+        const cols = b.cols;
         const inline = { inline: true };
         const result = new Matrix(rows, cols);
         for (let i = 0; i < cols; ++i) {
@@ -928,7 +944,7 @@ export class Matrix {
      */
     static solve(A, b) {
         let { L: L, U: U } = "L" in A && "U" in A ? A : Matrix.LU(A);
-        let rows = L.shape[0];
+        let rows = L.rows;
         let x = b.clone();
 
         // forward
@@ -956,7 +972,7 @@ export class Matrix {
      * @returns {{L: Matrix, U: Matrix}} result - Returns the left triangle matrix {@link L} and the upper triangle matrix {@link U}.
      */
     static LU(A) {
-        const rows = A.shape[0];
+        const rows = A.rows;
         const L = new Matrix(rows, rows, "zeros");
         const U = new Matrix(rows, rows, "identity");
 
@@ -989,7 +1005,7 @@ export class Matrix {
      * @returns {Number} det - Returns the determinate of the Matrix {@link A}.
      */
     static det(A) {
-        const rows = A.shape[0];
+        const rows = A.rows;
         const { L, U } = Matrix.LU(A);
         const L_diag = L.diag;
         const U_diag = U.diag;

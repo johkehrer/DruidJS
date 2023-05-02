@@ -10,7 +10,7 @@ import { Matrix } from "./index.js";
  * @returns {Matrix} D - The distance matrix of {@link A}.
  */
 export default function (A, metric = euclidean) {
-    let n = A.shape[0];
+    let n = A.rows;
     const D = new Matrix(n, n);
     for (let i = 0; i < n; ++i) {
         const A_i = A.row(i);

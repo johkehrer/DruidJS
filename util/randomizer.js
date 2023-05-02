@@ -27,15 +27,15 @@ export class Randomizer {
 
     set seed(_seed) {
         this._seed = _seed;
-        let mt = this._mt;
+        const mt = this._mt;
 
         mt[0] = _seed >>> 0;
-        for (this._mti = 1; this._mti < this._N; this._mti += 1) {
-            let mti = this._mti;
+        for (let mti = 1; mti < this._N; ++mti) {
             let s = mt[mti - 1] ^ (mt[mti - 1] >>> 30);
             mt[mti] = ((((s & 0xffff0000) >>> 16) * 1812433253) << 16) + (s & 0x0000ffff) * 1812433253 + mti;
             mt[mti] >>>= 0;
         }
+        this._mti = this._N;
     }
 
     /**
@@ -68,20 +68,21 @@ export class Randomizer {
                 this.seed = 5489;
             } */
 
-            let N_M = this._N - this._M;
-            let M_N = this._M - this._N;
+            const N_M = this._N - this._M;
+            const M_N = this._M - this._N;
+            const mt = this._mt;
 
             for (kk = 0; kk < N_M; ++kk) {
-                y = (this._mt[kk] & this._UPPER_MASK) | (this._mt[kk + 1] & this._LOWER_MASK);
-                this._mt[kk] = this._mt[kk + this._M] ^ (y >>> 1) ^ mag01[y & 0x1];
+                y = (mt[kk] & this._UPPER_MASK) | (mt[kk + 1] & this._LOWER_MASK);
+                mt[kk] = mt[kk + this._M] ^ (y >>> 1) ^ mag01[y & 0x1];
             }
             for (; kk < this._N - 1; ++kk) {
-                y = (this._mt[kk] & this._UPPER_MASK) | (this._mt[kk + 1] & this._LOWER_MASK);
-                this._mt[kk] = this._mt[kk + M_N] ^ (y >>> 1) ^ mag01[y & 0x1];
+                y = (mt[kk] & this._UPPER_MASK) | (mt[kk + 1] & this._LOWER_MASK);
+                mt[kk] = mt[kk + M_N] ^ (y >>> 1) ^ mag01[y & 0x1];
             }
 
-            y = (this._mt[this._N - 1] & this._UPPER_MASK) | (this._mt[0] & this._LOWER_MASK);
-            this._mt[this._N - 1] = this._mt[this._M - 1] ^ (y >>> 1) ^ mag01[y & 0x1];
+            y = (mt[this._N - 1] & this._UPPER_MASK) | (mt[0] & this._LOWER_MASK);
+            mt[this._N - 1] = mt[this._M - 1] ^ (y >>> 1) ^ mag01[y & 0x1];
 
             this._mti = 0;
         }
@@ -118,30 +119,26 @@ export class Randomizer {
      */
     choice(A, n) {
         if (A instanceof Matrix) {
-            let rows = A.shape[0];
-            if (n > rows) {
-                throw new Error("n bigger than A!");
-            }
-            let sample = new Array(n);
-            let index_list = linspace(0, rows - 1);
-            for (let i = 0, l = index_list.length; i < n; ++i, --l) {
-                let random_index = this.random_int % l;
-                sample[i] = index_list.splice(random_index, 1)[0];
-            }
+            const sample = this._choice(n, A.rows);
             return sample.map((d) => A.row(d));
         } else if (Matrix.isArray(A)) {
-            let rows = A.length;
-            if (n > rows) {
-                throw new Error("n bigger than A!");
-            }
-            let sample = new Array(n);
-            let index_list = linspace(0, rows - 1);
-            for (let i = 0, l = index_list.length; i < n; ++i, --l) {
-                let random_index = this.random_int % l;
-                sample[i] = index_list.splice(random_index, 1)[0];
-            }
+            const sample = this._choice(n, A.length);
             return sample.map((d) => A[d]);
+        } else {
+            throw new Error('A must be array or matrix');
         }
+    }
+
+    _choice(n, len) {
+        if (n > len) {
+            throw new Error("n bigger than A!");
+        }
+        const indices = Array.from({ length: len }, (_, i) => i);
+        const samples = Array.from({ length: n }, () => {
+            const random_index = this.random_int % len--;
+            return indices.splice(random_index, 1)[0];
+        });
+        return samples;
     }
 
     /**

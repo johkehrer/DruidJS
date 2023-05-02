@@ -38,7 +38,7 @@ export class XMeans{
             "score": null,
         };
         const A = this._matrix = matrix;
-        const N = A.shape[0];
+        const N = A.rows;
         // foreach K in [K_min, K_max];
         do {
             console.log(K, candidates)
@@ -132,7 +132,7 @@ export class XMeans{
     
     _bic(clusters, centroids, indices) {
         const A = this._matrix;
-        const D = this._matrix.shape[1];
+        const D = this._matrix.cols;
         const K = centroids.length;
         //const result = new Array(K).fill();
         let result = 0;

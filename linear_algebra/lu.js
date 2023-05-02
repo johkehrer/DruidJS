@@ -5,7 +5,7 @@ import { neumair_sum } from "../numerical/index.js";
 // crout algorithm
 // https://en.wikipedia.org/wiki/Crout_matrix_decomposition
 export default function(A) {
-    let rows = A.shape[0];
+    let rows = A.rows;
     let L = new Matrix(rows, rows, "zeros");
     let U = new Matrix(rows, rows, "identity");
     let sum;
