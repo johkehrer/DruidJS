@@ -1,4 +1,4 @@
-import { linspace, Matrix } from "../matrix/index.js";
+import { Matrix } from "../matrix/index.js";
 
 /**
  * @class

@@ -23,12 +23,12 @@ export class DR {
      */
     constructor(X, default_parameters, parameters) {
         this._parameters = Object.assign(Object.seal(default_parameters), parameters);
-        if (Matrix.isArray(X)) {
-            this._type = "array";
-            this.X = Matrix.from(X);
-        } else if (X instanceof Matrix) {
+        if (X instanceof Matrix) {
             this._type = "matrix";
             this.X = X;
+        } else if (Matrix.isArray(X)) {
+            this._type = "array";
+            this.X = Matrix.from(X);
         } else {
             throw new Error("No valid type for X!");
         }

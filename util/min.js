@@ -1,5 +1,5 @@
 /**
- * Returns maximum in Array {@link values}.
+ * Returns minimum in Array {@link values}.
  * @memberof module:utils
  * @alias min
  * @param {Array} values
