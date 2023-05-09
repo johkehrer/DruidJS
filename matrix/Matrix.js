@@ -31,7 +31,7 @@ export class Matrix {
         this._cols = cols;
         this._data = null;
         if (rows && cols) {
-            if (Matrix.isArray(value) && (rows * cols) === value.length) {
+            if (value && Matrix.isArray(value) && (rows * cols) === value.length) {
                 this._data = value;
                 return this;
             }
@@ -677,7 +677,11 @@ export class Matrix {
      * @returns {Matrix}
      */
     clone() {
-        return new Matrix(this._rows, this._cols, this._data.slice(0));
+        const B = new Matrix();
+        B._rows = this._rows;
+        B._cols = this._cols;
+        B._data = this._data.slice(0);
+        return B;
     }
 
     /**

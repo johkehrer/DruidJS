@@ -12,15 +12,14 @@ import { euclidean } from "../metrics/index.js";
  * @returns {Array<Object>} -
  */
 export default function (A, k, metric = euclidean) {
-    const rows = A.rows;
-    const nN = new Array(rows);
+    const N = A.rows;
     const D = metric == "precomputed" ? A : distance_matrix(A, metric);
-    for (let row = 0; row < rows; ++row) {
+    const nN = Array.from({ length: N }, (_, row) => {
         const arr = Array.from(D.row(row), (d, col) => ({ i: row, j: col, distance: d }));
         arr[row] = arr[0]; // elliminate diagonal
-        quickselect(arr, (a, b) => a.distance - b.distance, k, 1);
-        nN[row] = arr.slice(1, k + 1);
-    }
+        if (k < N) quickselect(arr, (a, b) => a.distance - b.distance, k, 1);
+        return arr.slice(1, k + 1);
+    });
     return nN;
 }
 
