@@ -2,7 +2,7 @@ import { euclidean, chebyshev } from "../metrics/index.js";
 import { MDS } from "../dimred/MDS.js";
 import { Randomizer } from "../util/index.js";
 import { BallTree } from "../knn/BallTree.js";
-import { Matrix } from "../matrix/index.js";
+import { distance_matrix, Matrix } from "../matrix/index.js";
 import { neumair_sum } from "../numerical/index.js";
 
 /**
@@ -209,10 +209,7 @@ export class OAP {
         }*/
 
         // MDS stress step
-        const d_Y = new Matrix();
-        d_Y.shape = [N, N, (i, j) => {
-            return i < j ? euclidean(Y.row(i), Y.row(j)) : d_Y.entry(j, i);
-        }];
+        const d_Y = distance_matrix(Y, euclidean);
         const ratio = new Matrix(); //d_X.divide(d_Y).mult(-1);
         ratio.shape = [N, N, (i, j) => {
             if (i === j) return 1e-8;

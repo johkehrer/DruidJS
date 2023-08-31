@@ -194,14 +194,10 @@ export class Matrix {
      */
     col(col) {
         const cols = this._cols;
-        const rows = this._rows;
         const data = this._data;
-        if (cols === 1) return data.slice(0);
-        const result = new Float64Array(rows);
-        for (let i = col, row = 0; row < rows; ++row, i += cols) {
-            result[row] = data[i];
-        }
-        return result;
+        return cols > 1
+            ? Float64Array.from({ length: this._rows }, (_, row) => data[row * cols + col])
+            : data.slice(0);
     }
 
     /**

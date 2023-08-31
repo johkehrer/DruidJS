@@ -10,13 +10,13 @@ import { Matrix } from "./index.js";
  * @returns {Matrix} D - The distance matrix of {@link A}.
  */
 export default function (A, metric = euclidean) {
-    let n = A.rows;
-    const D = new Matrix(n, n);
-    for (let i = 0; i < n; ++i) {
+    const N = A.rows;
+    const D = new Matrix(N, N);
+    const data = D.values;
+    for (let i = 0; i < N; ++i) {
         const A_i = A.row(i);
-        const D_i = D.row(i);
-        for (let j = i + 1; j < n; ++j) {
-            D.set_entry(j, i, D_i[j] = metric(A_i, A.row(j)));
+        for (let j = i + 1, i_j = i * N + j, j_i = j * N + i; j < N; j_i += N) {
+            data[j_i] = data[i_j++] = metric(A_i, A.row(j++));
         }
     }
     return D;
