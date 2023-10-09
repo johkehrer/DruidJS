@@ -17,7 +17,7 @@ export default function (A, k, metric = euclidean) {
     const nN = Array.from({ length: N }, (_, row) => {
         const arr = Array.from(D.row(row), (d, col) => ({ i: row, j: col, distance: d }));
         arr[row] = arr[0]; // elliminate diagonal
-        if (k < N) quickselect(arr, (a, b) => a.distance - b.distance, k, 1);
+        if (k < N) quickselect(arr, (a, b) => a.distance - b.distance, k, 1, N - 1);
         return arr.slice(1, k + 1);
     });
     return nN;
