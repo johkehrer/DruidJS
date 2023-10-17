@@ -127,6 +127,7 @@ export class TSNE extends DR {
      * @returns {Matrix}
      */
     next() {
+        const sgn = x => x > 0 ? 1 : x < 0 ? -1 : 0;
         const { d: dim, epsilon} = this._parameters;
         const ystep = this._ystep.values;
         const gains = this._gains.values;
@@ -145,13 +146,12 @@ export class TSNE extends DR {
             for (d = 0; d < dim; ++d, ++i) {
                 const gid = g_val[i];
                 const sid = ystep[i];
+                const gainid = gains[i];
 
-                const newgain = Math.max(gid * sid < 0.0 ? gains[i] + 0.2 : gains[i] * 0.8, 0.01);
-                gains[i] = newgain;
-
+                const newgain = Math.max(sgn(gid) === sgn(sid) ? gainid * 0.8 : gainid + 0.2, 0.01);
                 const newsid = momval * sid - epsilon * newgain * gid;
+                gains[i] = newgain;
                 ystep[i] = newsid;
-
                 ymean[d] += (Y_val[i] += newsid);
             }
         }
@@ -214,10 +214,11 @@ export class TSNE extends DR {
     /** Symmetrize conditional probabilites */
     _symmetrizeP(P) {
         const N = this._N;
+        const end = N * N;
+        const data = P.values;
         for (let i = 0; i < N; ++i) {
-            const P_i = P.row(i);
-            for (let j = i + 1; j < N; ++j) {
-                P.set_entry(j, i, P_i[j] += P.entry(j, i));
+            for (let i_j = i * (N + 1), j_i = i_j + N; j_i < end; j_i += N) {
+                data[j_i] = (data[++i_j] += data[j_i]);
             }
         }
         return P;
