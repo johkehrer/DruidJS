@@ -31,6 +31,7 @@ export class TSNE extends DR {
         this.Y = new Matrix(N, dim, () => randomizer.gauss_random() * 1e-4);
         this._ystep = new Matrix(N, dim, 0);
         this._gains = new Matrix(N, dim, 1);
+        this._grad = new Matrix(N, dim, 0);
         this._iter = 0;
 
         return this;
@@ -172,6 +173,7 @@ export class TSNE extends DR {
     _gradient(Y) {
         const pmul = this._iter < 100 ? 4 : 1;
         const { d: dim } = this._parameters;
+        const grad = this._grad;
         const P = this._P;
         const N = this._N;
 
@@ -191,7 +193,6 @@ export class TSNE extends DR {
         }
 
         // calc gradient
-        const grad = new Matrix(N, dim, 0);
         for (let i = 0; i < N; ++i) {
             const P_i = P.row(i);
             const Q_i = Q.row(i);

@@ -1,5 +1,5 @@
-import { Matrix, norm } from "../matrix/index.js";
-import { euclidean } from "../metrics/index.js";
+import { inner_product } from "../linear_algebra/index.js";
+import { Matrix } from "../matrix/index.js";
 
 /**
  * Computes the QR Decomposition of the Matrix `A` using Gram-Schmidt process.
@@ -27,9 +27,9 @@ export default function (A) {
             }
             R.set_entry(i, j, q_dot_v);
         }
-        const v_norm = norm(v, euclidean);
-        for (let k = 0; k < rows; ++k) {
-            Q.set_entry(k, j, v[k] / v_norm);
+        const v_norm = Math.sqrt(inner_product(v, v));
+        for (let row = 0, k = j; row < rows; ++row, k += cols) {
+            Q_val[k] = v[row] / v_norm;
         }
         R.set_entry(j, j, v_norm);
     }
