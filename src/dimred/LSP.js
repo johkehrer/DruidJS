@@ -51,7 +51,7 @@ export class LSP extends DR {
         DR_parameters = Object.assign({ d, metric, seed }, DR_parameters);
         const nc = this.parameter("control_points");
         const control_points = new KMedoids(X, nc, null, metric).get_clusters().medoids;
-        const C = new Matrix(nc, N, "zeros");
+        const C = new Matrix(nc, N, 0);
         control_points.forEach((c_i, i) => {
             C.set_entry(i, c_i, 1);
         });
@@ -69,7 +69,7 @@ export class LSP extends DR {
         });
         const A = L.concat(C, "vertical");
 
-        const z = new Matrix(N, d, "zeros");
+        const z = new Matrix(N, d, 0);
         const b = z.concat(Y_C, "vertical");
 
         this._A = A;

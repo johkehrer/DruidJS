@@ -219,7 +219,7 @@ export class UMAP extends DR {
         const knn = metric === "precomputed" ? new KNN(X, "precomputed") : new BallTree(X.to2dArray, metric);
         let { distances, sigmas, rhos } = this._smooth_knn_dist(knn, n_neighbors);
         distances = this._compute_membership_strengths(distances, sigmas, rhos);
-        const result = new Matrix(N, N, "zeros");
+        const result = new Matrix(N, N, 0);
         for (let i = 0; i < N; ++i) {
             const distances_i = distances[i];
             for (let j = 0; j < distances_i.length; ++j) {

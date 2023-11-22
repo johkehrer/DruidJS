@@ -11,7 +11,7 @@ import { Matrix } from "../matrix/index.js";
  */
 export default function (A) {
     const [rows, cols] = A.shape;
-    const Q = new Matrix(rows, cols, "identity");
+    const Q = new Matrix(rows, cols, "I");
     const R = new Matrix(cols, cols, 0);
     const Q_val = Q.values;
 

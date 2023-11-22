@@ -6,8 +6,8 @@ import { neumair_sum } from "../numerical/index.js";
 // https://en.wikipedia.org/wiki/Crout_matrix_decomposition
 export default function(A) {
     let rows = A.rows;
-    let L = new Matrix(rows, rows, "zeros");
-    let U = new Matrix(rows, rows, "identity");
+    let L = new Matrix(rows, rows, 0);
+    let U = new Matrix(rows, rows, "I");
     let sum;
 
     for (let j = 0; j < rows; ++j) {

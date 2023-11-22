@@ -88,23 +88,17 @@ export class Matrix {
             return A.clone();
         } else if (Matrix.isArray(A)) {
             const m = A.length;
-            if (!Matrix.isArray(A[0])) {
-                // 1d
-                if (type === "row") {
-                    return new Matrix(1, m, A.slice());
-                } else if (type === "col") {
-                    return new Matrix(m, 1, A.slice());
-                } else if (type === "diag") {
-                    return new Matrix(m, m, (i, j) => (i == j ? A[i] : 0));
-                } else {
-                    throw new Error("1d array has NaN entries");
-                }
-            } else {
-                // 2d
+            if (Matrix.isArray(A[0])) { // 2d
                 const n = A[0].length;
                 return type === "row"
                     ? new Matrix(m, n, (i, j) => A[i][j])
                     : new Matrix(n, m, (i, j) => A[j][i]);
+            }
+            switch (type) { // 1d
+                case 'row': return new Matrix(1, m, A.slice(0));
+                case 'col': return new Matrix(m, 1, A.slice(0));
+                case 'diag': return new Matrix(m, m, (i, j) => i === j ? A[i] : 0);
+                default: throw new Error("type unknown");
             }
         } else if (typeof A === "number") {
             return new Matrix(1, 1, A);
@@ -354,13 +348,13 @@ export class Matrix {
      * @returns {(Matrix|Array)}
      */
     dot(B) {
+        const A_data = this._data;
+        const A_rows = this._rows;
+        const A_cols = this._cols;
         if (B instanceof Matrix) {
-            const A = this;
-            const A_data = A.values;
-            const B_data = B.values;
-            const [A_rows, A_cols] = A.shape;
             const [B_rows, B_cols] = B.shape;
             const B_size = B_rows * B_cols;
+            const B_data = B.values;
             this._check_size(A_cols, B_rows, "A.dot(B)");
             const C = new Matrix(A_rows, B_cols, (row, col) => {
                 let i = row * A_cols, j = col, sum = 0;
@@ -371,12 +365,12 @@ export class Matrix {
             });
             return C;
         } else if (Matrix.isArray(B)) {
-            const rows = this._rows;
-            const C = new Array(rows);
-            this._check_size(rows, B.length, "A.dot(B)");
-            for (let row = 0; row < rows; ++row) {
-                C[row] = B[row] * neumair_sum(this.row(row));
-            }
+            this._check_size(A_cols, B.length, "A.dot(B)");
+            const C = Array.from({ length: A_rows }, (_, row) => {
+                let i = row * A_cols, j = 0, sum = 0;
+                while (j < A_rows) sum += A_data[i++] * B[j++];
+                return sum;
+            });
             return C;
         } else {
             throw new Error(`B must be Matrix or Array`);
@@ -438,9 +432,7 @@ export class Matrix {
             const C = new Matrix(A_rows, B_cols, (row, col) => {
                 let sum = 0, i = row * A_cols, j = col * B_rows;
                 const end = i + A_cols;
-                while (i < end) {
-                    sum += A_data[i++] * B_data[j++];
-                }
+                while (i < end) sum += A_data[i++] * B_data[j++];
                 return sum;
             });
             return C;
@@ -510,7 +502,7 @@ export class Matrix {
             if (rows_A != rows_B) {
                 throw new Error(`A.concat(B, "horizontal"): A and B need same number of rows, A has ${rows_A} rows, B has ${rows_B} rows.`);
             }
-            const X = new Matrix(rows_A, cols_A + cols_B, "zeros");
+            const X = new Matrix(rows_A, cols_A + cols_B, 0);
             X.set_block(0, 0, A);
             X.set_block(0, cols_A, B);
             return X;
@@ -518,12 +510,12 @@ export class Matrix {
             if (cols_A != cols_B) {
                 throw new Error(`A.concat(B, "vertical"): A and B need same number of columns, A has ${cols_A} columns, B has ${cols_B} columns.`);
             }
-            const X = new Matrix(rows_A + rows_B, cols_A, "zeros");
+            const X = new Matrix(rows_A + rows_B, cols_A, 0);
             X.set_block(0, 0, A);
             X.set_block(rows_A, 0, B);
             return X;
         } else if (type == "diag") {
-            const X = new Matrix(rows_A + rows_B, cols_A + cols_B, "zeros");
+            const X = new Matrix(rows_A + rows_B, cols_A + cols_B, 0);
             X.set_block(0, 0, A);
             X.set_block(rows_A, cols_A, B);
             return X;
@@ -973,8 +965,8 @@ export class Matrix {
      */
     static LU(A) {
         const rows = A.rows;
-        const L = new Matrix(rows, rows, "zeros");
-        const U = new Matrix(rows, rows, "identity");
+        const L = new Matrix(rows, rows, 0);
+        const U = new Matrix(rows, rows, "I");
 
         for (let j = 0; j < rows; ++j) {
             for (let i = j; i < rows; ++i) {
