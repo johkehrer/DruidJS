@@ -37,40 +37,40 @@ export class Matrix {
             }
             const data = this._data = new Float64Array(rows * cols);
             if (!value) return this;
-            if (typeof value === "function") {
-                for (let i = 0, row = 0; row < rows; ++row) {
-                    for (let col = 0; col < cols; ++col) {
-                        data[i++] = value(row, col);
+            switch (typeof value) {
+                case 'function':
+                    this._fill(rows, cols, data, value);
+                    break;
+                case 'number':
+                    data.fill(value);
+                    break;
+                case 'string': {
+                    switch (value) {
+                        case 'zeros':
+                            break;
+                        case 'I':
+                        case 'identity':
+                            for (let row = 0; row < rows; ++row) {
+                                data[row * cols + row] = 1;
+                            }
+                            break;
+                        case 'center':
+                            this._fill(rows, cols, data, (i, j) => (i === j ? 1 : 0) - 1 / rows);
+                            break;
                     }
+                    break;
                 }
-                return this;
-            }
-            if (typeof value === "string") {
-                if (value === "zeros") {
-                    return this;
-                }
-                if (value === "identity" || value === "I") {
-                    for (let row = 0; row < rows; ++row) {
-                        data[row * cols + row] = 1;
-                    }
-                    return this;
-                }
-                if (value === "center" && rows == cols) {
-                    value = (i, j) => (i === j ? 1 : 0) - 1 / rows;
-                    for (let i = 0, row = 0; row < rows; ++row) {
-                        for (let col = 0; col < cols; ++col) {
-                            data[i++] = value(row, col);
-                        }
-                    }
-                    return this;
-                }
-            }
-            if (typeof value === "number") {
-                data.fill(value);
-                return this;
             }
         }
         return this;
+    }
+
+    _fill(rows, cols, data, f) {
+        for (let i = 0, row = 0; row < rows; ++row) {
+            for (let col = 0; col < cols; ++i, ++col) {
+                data[i] = f(row, col);
+            }
+        }
     }
 
     /**
@@ -780,13 +780,7 @@ export class Matrix {
     set shape([rows, cols, value = () => 0]) {
         this._rows = rows;
         this._cols = cols;
-        const data =
-        this._data = new Float64Array(rows * cols);
-        for (let i = 0, row = 0; row < rows; ++row) {
-            for (let col = 0; col < cols; ++col, ++i) {
-                data[i] = value(row, col);
-            }
-        }
+        this._fill(rows, cols, this._data = new Float64Array(rows * cols), value);
         return this;
     }
 
