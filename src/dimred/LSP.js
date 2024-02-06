@@ -86,7 +86,7 @@ export class LSP extends DR {
         this.check_init();
         const A = this._A;
         const b = this._b;
-        const ATA = A.transDot(A);
+        const ATA = A.transDotSelf();
         const ATb = A.transDot(b);
         this.Y = Matrix.solve_CG(ATA, ATb, this._randomizer);
         return this.projection;

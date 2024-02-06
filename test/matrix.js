@@ -42,6 +42,9 @@ describe("Matrix", () => {
         const DT_dot_D = Float64Array.from([9, 12, 15, 12, 17, 22, 15, 22, 29]);
         assert.deepEqual(D.T.dot(D).values, DT_dot_D);
         assert.deepEqual(D.transDot(D).values, DT_dot_D);
+
+        assert.ok(B.transDotSelf());
+        assert.deepEqual(B.transDotSelf(), B.transDot(B));
     });
 
     it("Matrix inversion", () => {

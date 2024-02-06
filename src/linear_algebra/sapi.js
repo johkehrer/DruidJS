@@ -27,7 +27,7 @@ export default function (A, max_iterations = 100, batch_size = 10, beta = 0.05, 
     }
 
     let u = r.transDot(A).dot(r);
-    let l = r.transDot(r);
+    let l = r.transDotSelf();
     let lambda = u.divide(l).entry(0, 0);
     return {
         eigenvector: r.transpose().to2dArray[0],

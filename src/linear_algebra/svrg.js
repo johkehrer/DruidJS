@@ -20,7 +20,7 @@ export default function(data, x, beta, epoch=20, m=10, s=1, seed) {
     x = new Matrix(d, 1, () => randomizer.random)
     x = x.divide(norm(x));
     let x0 = x.clone();
-    let A = data.transDot(data).divide(n);
+    let A = data.transDotSelf().divide(n);
     let x_tilde = x.clone();
     
     for (let t = 0; t < epoch; ++t) {
@@ -28,7 +28,7 @@ export default function(data, x, beta, epoch=20, m=10, s=1, seed) {
         for (let i = 0; i < m; ++i) {
             const ang = x.transDot(x_tilde).entry(0, 0);
             const sample = Matrix.from(Randomizer.choice(data, s));
-            const sampleT_dot_sample = sample.transDot(sample)
+            const sampleT_dot_sample = sample.transDotSelf();
             const x_tmp = x.clone();
             const XTXx = sampleT_dot_sample
                     .dot(x.divide(s));

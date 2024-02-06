@@ -415,6 +415,29 @@ export class Matrix {
     }
 
     /**
+     * Transposes the current matrix and returns the dot product with itself.
+     * @returns {Matrix}
+     */
+    transDotSelf() {
+        const data = this._data;
+        const rows = this._cols;
+        const cols = this._rows;
+        const size = rows * cols;
+        const C = new Matrix(rows, rows);
+        const C_data = C.values;
+        for (let row = 0; row < rows; ++row) {
+            let col = row, i_j = row * (rows + 1), j_i = i_j;
+            for (; col < rows; ++col, j_i += rows) {
+                for (let i = row, j = col, sum = 0; i < size; i += rows, j += rows) {
+                    sum += data[i] * data[j];
+                }
+                C_data[i_j++] = C_data[j_i] = sum;
+            }
+        }
+        return C;
+    }
+
+    /**
      * Returns the dot product with the transposed version of {@link B}.
      * If {@link B} is an Array or Float64Array then an Array gets returned.
      * If {@link B} is a Matrix then a Matrix gets returned.
@@ -1009,7 +1032,7 @@ export class Matrix {
      * @returns {{U: Matrix, Sigma: Matrix, V: Matrix}}
      */
     static SVD(M, k = 2) {
-        let MtM = M.transDot(M);
+        let MtM = M.transDotSelf();
         let MMt = M.dotTrans(M);
         let { eigenvectors: V, eigenvalues: Sigma } = simultaneous_poweriteration(MtM, k);
         let { eigenvectors: U } = simultaneous_poweriteration(MMt, k);

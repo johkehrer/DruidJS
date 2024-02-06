@@ -66,7 +66,7 @@ export class LLE extends DR {
         // comp embedding
         const I = new Matrix(rows, rows, "I");
         const IW = I.sub(W);
-        const M = IW.transDot(IW);
+        const M = IW.transDotSelf();
         const { eigenvectors: V } = simultaneous_poweriteration(M.T.inverse(), d + 1, eig_args);
         this.Y = Matrix.from(V.slice(1, 1 + d), "col");
 
