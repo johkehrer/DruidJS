@@ -428,7 +428,8 @@ export class Matrix {
         for (let row = 0; row < rows; ++row) {
             let col = row, i_j = row * (rows + 1), j_i = i_j;
             for (; col < rows; ++col, j_i += rows) {
-                for (let i = row, j = col, sum = 0; i < size; i += rows, j += rows) {
+                let i = row, j = col, sum = 0;
+                for (; i < size; i += rows, j += rows) {
                     sum += data[i] * data[j];
                 }
                 C_data[i_j++] = C_data[j_i] = sum;
