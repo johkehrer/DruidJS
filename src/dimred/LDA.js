@@ -54,34 +54,21 @@ export class LDA extends DR {
             }
         });
 
-        // create X_mean and vector means;
-        const X_mean = X.mean;
-        const V_mean = new Matrix(label_id, cols);
-        for (const label in unique_labels) {
-            const V = Matrix.from(unique_labels[label].rows);
-            const v_mean = V.meanCols;
-            for (let j = 0; j < cols; ++j) {
-                V_mean.set_entry(unique_labels[label].id, j, v_mean[j]);
-            }
-        }
         // scatter_between
-        let S_b = new Matrix(cols, cols);
+        const X_mean = X.mean;
+        const inline = { inline: true };
+        const S_b = new Matrix(cols, cols);
+        const S_w = new Matrix(cols, cols);
         for (const label in unique_labels) {
-            const v = V_mean.row(unique_labels[label].id);
-            const m = new Matrix(cols, 1, (j) => v[j] - X_mean);
-            const N = unique_labels[label].count;
-            S_b = S_b.add(m.dotTrans(m).mult(N));
-        }
+            const { count, rows } = unique_labels[label];
+            const v_mean = Matrix.from(rows).meanCols;
+            const m = new Matrix(cols, 1, (j) => v_mean[j] - X_mean);
+            S_b.add(m.dotTransSelf().mult(count, inline), inline);
 
-        // scatter_within
-        let S_w = new Matrix(cols, cols);
-        for (const label in unique_labels) {
-            const v = V_mean.row(unique_labels[label].id);
-            const m = new Matrix(cols, 1, (j) => v[j]);
-            const R = unique_labels[label].rows;
-            for (let i = 0, n = unique_labels[label].count; i < n; ++i) {
-                const row_v = new Matrix(cols, 1, (j, _) => R[i][j] - m.entry(j, 0));
-                S_w = S_w.add(row_v.dotTrans(row_v));
+            // scatter_within
+            for (const row of rows) {
+                const row_v = new Matrix(cols, 1, (j, _) => row[j] - v_mean[j]);
+                S_w.add(row_v.dotTransSelf(), inline);
             }
         }
 

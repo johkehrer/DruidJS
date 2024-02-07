@@ -388,6 +388,17 @@ export class Matrix {
         return C;
     }
 
+    dotTransSelf() {
+        const dot = this._dot(this, false, true);
+        const C = new Matrix();
+        C.shape = [
+            this._rows,
+            this._rows,
+            (i, j) => (i <= j) ? dot(i, j) : C.entry(j, i)
+        ];
+        return C;
+    }
+
     /**
      * Returns the dot product with the transposed version of {@link B}.
      * If {@link B} is an Array or Float64Array then an Array gets returned.
@@ -978,7 +989,7 @@ export class Matrix {
      */
     static SVD(M, k = 2) {
         let MtM = M.transDotSelf();
-        let MMt = M.dotTrans(M);
+        let MMt = M.dotTransSelf();
         let { eigenvectors: V, eigenvalues: Sigma } = simultaneous_poweriteration(MtM, k);
         let { eigenvectors: U } = simultaneous_poweriteration(MMt, k);
         return { U: U, Sigma: Sigma.map((sigma) => Math.sqrt(sigma)), V: V };

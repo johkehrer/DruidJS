@@ -55,7 +55,7 @@ export class LTSA extends DR {
             // center X_i
             X_i = X_i.dot(O);
             // correlation matrix
-            const C = X_i.dotTrans(X_i);
+            const C = X_i.dotTransSelf();
             const { eigenvectors: g } = simultaneous_poweriteration(C, d, eig_args);
             //g.push(linspace(0, k).map(_ => 1 / Math.sqrt(k + 1)));
             const G_i_t = Matrix.from(g);

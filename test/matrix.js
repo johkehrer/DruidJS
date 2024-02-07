@@ -45,6 +45,9 @@ describe("Matrix", () => {
 
         assert.ok(B.transDotSelf());
         assert.deepEqual(B.transDotSelf(), B.transDot(B));
+
+        assert.ok(B.dotTransSelf());
+        assert.deepEqual(B.dotTransSelf(), B.dotTrans(B));
     });
 
     it("Matrix inversion", () => {
