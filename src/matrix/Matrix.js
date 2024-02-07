@@ -39,7 +39,7 @@ export class Matrix {
             if (!value) return this;
             switch (typeof value) {
                 case 'function':
-                    this._fill(rows, cols, data, value);
+                    fill(rows, cols, data, value);
                     break;
                 case 'number':
                     data.fill(value);
@@ -55,7 +55,7 @@ export class Matrix {
                             }
                             break;
                         case 'center':
-                            this._fill(rows, cols, data, (i, j) => (i === j ? 1 : 0) - 1 / rows);
+                            fill(rows, cols, data, (i, j) => (i === j ? 1 : 0) - 1 / rows);
                             break;
                     }
                     break;
@@ -63,14 +63,6 @@ export class Matrix {
             }
         }
         return this;
-    }
-
-    _fill(rows, cols, data, f) {
-        for (let i = 0, row = 0; row < rows; ++row) {
-            for (let col = 0; col < cols; ++i, ++col) {
-                data[i] = f(row, col);
-            }
-        }
     }
 
     /**
@@ -343,35 +335,19 @@ export class Matrix {
     }
 
     /**
-     * Returns the dot product. If {@link B} is an Array or Float64Array then an Array gets returned. If {@link B} is a Matrix then a Matrix gets returned.
+     * Returns the dot product. If {@link B} is an Array or Float64Array then an Array gets returned.
+     * If {@link B} is a Matrix then a Matrix gets returned.
      * @param {(Matrix|Array|Float64Array)} B the right side
      * @returns {(Matrix|Array)}
      */
     dot(B) {
-        const A_data = this._data;
-        const A_rows = this._rows;
-        const A_cols = this._cols;
         if (B instanceof Matrix) {
-            const [B_rows, B_cols] = B.shape;
-            const B_size = B_rows * B_cols;
-            const B_data = B.values;
-            this._check_size(A_cols, B_rows, "A.dot(B)");
-            const C = new Matrix(A_rows, B_cols, (row, col) => {
-                let i = row * A_cols, j = col, sum = 0;
-                for (; j < B_size; ++i, j += B_cols) {
-                    sum += A_data[i] * B_data[j];
-                }
-                return sum;
-            });
-            return C;
+            check_size(this._cols, B._rows, "A.dot(B)");
+            return new Matrix(this._rows, B._cols, this._dot(B, false, false));
         } else if (Matrix.isArray(B)) {
-            this._check_size(A_cols, B.length, "A.dot(B)");
-            const C = Array.from({ length: A_rows }, (_, row) => {
-                let i = row * A_cols, j = 0, sum = 0;
-                while (j < A_rows) sum += A_data[i++] * B[j++];
-                return sum;
-            });
-            return C;
+            check_size(this._cols, B.length, "A.dot(B)");
+            const dot = this._dot({ _data: B, _cols: 1 }, false, false);
+            return Array.from({ length: this._rows }, (_, row) => dot(row, 0));
         } else {
             throw new Error(`B must be Matrix or Array`);
         }
@@ -386,29 +362,12 @@ export class Matrix {
      */
     transDot(B) {
         if (B instanceof Matrix) {
-            const A = this;
-            const A_data = A.values;
-            const B_data = B.values;
-            const [A_cols, A_rows] = A.shape; // transpose matrix
-            const [B_rows, B_cols] = B.shape;
-            const A_size = A_rows * A_cols;
-            this._check_size(A_cols, B_rows, "A.transDot(B)");
-            const C = new Matrix(A_rows, B_cols, (row, col) => {
-                let i = row, j = col, sum = 0;
-                for (; i < A_size; i += A_rows, j += B_cols) {
-                    sum += A_data[i] * B_data[j];
-                }
-                return sum;
-            });
-            return C;
+            check_size(this._rows, B._rows, "A.transDot(B)");
+            return new Matrix(this._cols, B._cols, this._dot(B, true, false));
         } else if (Matrix.isArray(B)) {
-            const rows = this._cols;
-            const C = new Array(rows);
-            this._check_size(rows, B.length, "A.transDot(B)");
-            for (let row = 0; row < rows; ++row) {
-                C[row] = B[row] * neumair_sum(this.col(row));
-            }
-            return C;
+            check_size(this._rows, B.length, "A.transDot(B)");
+            const dot = this._dot({ _data: B, _cols: 1 }, true, false);
+            return Array.from({ length: this._cols }, (_, row) => dot(row, 0));
         } else {
             throw new Error(`B must be Matrix or Array`);
         }
@@ -419,22 +378,13 @@ export class Matrix {
      * @returns {Matrix}
      */
     transDotSelf() {
-        const data = this._data;
-        const rows = this._cols;
-        const cols = this._rows;
-        const size = rows * cols;
-        const C = new Matrix(rows, rows);
-        const C_data = C.values;
-        for (let row = 0; row < rows; ++row) {
-            let col = row, i_j = row * (rows + 1), j_i = i_j;
-            for (; col < rows; ++col, j_i += rows) {
-                let i = row, j = col, sum = 0;
-                for (; i < size; i += rows, j += rows) {
-                    sum += data[i] * data[j];
-                }
-                C_data[i_j++] = C_data[j_i] = sum;
-            }
-        }
+        const dot = this._dot(this, true, false);
+        const C = new Matrix();
+        C.shape = [
+            this._cols,
+            this._cols,
+            (i, j) => (i <= j) ? dot(i, j) : C.entry(j, i)
+        ];
         return C;
     }
 
@@ -447,35 +397,29 @@ export class Matrix {
      */
     dotTrans(B) {
         if (B instanceof Matrix) {
-            const A = this;
-            const A_data = A.values;
-            const B_data = B.values;
-            const [A_rows, A_cols] = A.shape;
-            const [B_cols, B_rows] = B.shape; // transpose matrix
-            this._check_size(A_cols, B_rows, "A.dotTrans(B)");
-            const C = new Matrix(A_rows, B_cols, (row, col) => {
-                let sum = 0, i = row * A_cols, j = col * B_rows;
-                const end = i + A_cols;
-                while (i < end) sum += A_data[i++] * B_data[j++];
-                return sum;
-            });
-            return C;
+            check_size(this._cols, B._cols, "A.dotTrans(B)");
+            return new Matrix(this._rows, B._rows, this._dot(B, false, true));
         } else if (Matrix.isArray(B)) {
-            const rows = this._rows;
-            const C = new Array(rows);
-            this._check_size(rows, B.length, "A.dotTrans(B)");
-            for (let row = 0; row < rows; ++row) {
-                C[row] = B[row] * neumair_sum(this.row(row));
-            }
-            return C;
+            check_size(this._cols, 1, "A.dot(B)");
+            const dot = this._dot({ _data: B, _cols: 1 }, false, true);
+            return Array.from({ length: this._rows }, (_, row) => dot(row, 0));
         } else {
             throw new Error(`B must be Matrix or Array`);
         }
     }
 
-    _check_size(A_cols, B_rows, msg) {
-        if (A_cols !== B_rows) {
-            throw new Error(`${msg}: A has ${A_cols} cols and B has ${B_rows} rows. Must be equal!`);
+    _dot(B, transA, transB) {
+        const steps = transA ? this._rows : this._cols;
+        const i_off = transA ? 1 : this._cols;
+        const i_inc = transA ? this._cols : 1;
+        const j_off = transB ? B._cols : 1;
+        const j_inc = transB ? 1 : B._cols;
+        const A_data = this._data;
+        const B_data = B._data;
+        return (row, col) => {
+            let i = row * i_off, j = col * j_off, cnt = steps, sum = 0;
+            for (; cnt--; i += i_inc, j += j_inc) sum += A_data[i] * B_data[j];
+            return sum;
         }
     }
 
@@ -804,7 +748,7 @@ export class Matrix {
     set shape([rows, cols, value = () => 0]) {
         this._rows = rows;
         this._cols = cols;
-        this._fill(rows, cols, this._data = new Float64Array(rows * cols), value);
+        fill(rows, cols, this._data = new Float64Array(rows * cols), value);
         return this;
     }
 
@@ -1052,5 +996,19 @@ export class Matrix {
 
     static isArray(A) {
         return Array.isArray(A) || A instanceof Float64Array || A instanceof Float32Array;
+    }
+}
+
+function check_size(A_cols, B_rows, msg) {
+    if (A_cols !== B_rows) {
+        throw new Error(`${msg}: A has ${A_cols} cols and B has ${B_rows} rows. Must be equal!`);
+    }
+}
+
+function fill(rows, cols, data, f) {
+    for (let i = 0, row = 0; row < rows; ++row) {
+        for (let col = 0; col < cols; ++i, ++col) {
+            data[i] = f(row, col);
+        }
     }
 }
