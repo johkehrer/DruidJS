@@ -13,9 +13,7 @@ import { Matrix } from "../matrix/index.js";
 export default function (v, metric = euclidean) {
     let vector = null;
     if (v instanceof Matrix) {
-        let [rows, cols] = v.shape;
-        if (rows === 1) vector = v.row(0);
-        else if (cols === 1) vector = v.col(0);
+        if (v.rows === 1 || v.cols === 1) vector = v.values;
         else throw new Error("Matrix must be 1d!");
     } else {
         vector = v;
